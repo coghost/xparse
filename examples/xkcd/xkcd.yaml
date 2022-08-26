@@ -1,0 +1,105 @@
+__raw:
+  site_url: https://xkcd.com/
+
+page:
+  title: head>title
+  footnote: div#footnote
+  license: div#licenseText
+  license1:
+    _locator: div#licenseText
+    _striped: true
+  by_multiple_locators:
+    _index: ~
+    _locator: a
+
+top_container:
+  _locator: div#topContainer
+  first_link: li>a
+  top_left:
+    _index: ~
+    _locator: a
+    _attr: href
+    text:
+    href:
+      _attr: href
+      _attr_refine: enrich_url
+  top_right:
+    _locator: div#topRight
+    masthead:
+      _locator: div#masthead
+      image:
+        _locator: span>a>img
+        src:
+          _attr: src
+          _attr_refine: enrich_url
+        alt:
+          _attr: alt
+      slogan: span#slogan
+    news:
+      _locator: div#news
+      links:
+        _locator: a
+        _attr: href
+        text:
+        href:
+          _attr: href
+          _attr_refine: enrich_url
+
+middle_container:
+  _locator: div#middleContainer
+  ctitle: div#ctitle
+  comic_nav:
+    _locator: ul.comicNav
+    _index: 0
+    nav:
+      _index: ~
+      _locator: li>a
+      text:
+      href:
+        _attr: href
+        _attr_refine: enrich_url
+      rel:
+        _attr: rel
+      accesskey:
+        _attr: accesskey
+  comic:
+    _locator: div#comic>img
+    _attr:
+      - src
+      - title
+      - alt
+  transcript: div#transcript
+
+bottom:
+  _locator: div#bottom
+  comic_map:
+    _locator: map[name='comicmap']>area
+    _index: ~
+    alt:
+      _attr: alt
+      _attr_refine: true
+    coords:
+      _attr: coords
+    href:
+      _attr: href
+      _attr_refine: enrich_url
+  comic:
+    href:
+      _attr: href
+      _attr_refine: enrich_url
+    _locator: a
+  feed:
+    _locator: div>a[href^='/']
+    _index:
+      - 1
+    text:
+    href:
+      _attr: href
+      _attr_refine: enrich_url
+  comic_links:
+    _locator: div#comicLinks>a
+    _index: ~
+    text:
+    href:
+      _attr: href
+      _attr_refine: enrich_url

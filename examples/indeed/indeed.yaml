@@ -1,0 +1,50 @@
+__raw:
+  site_url: https://www.indeed.com/
+  test_keys:
+    - jobs
+
+page:
+  title: head>title
+  footer:
+    _locator: footer.icl-GlobalFooter
+    navs:
+      _index: ~
+      _locator: ul>li>a
+      text:
+      href:
+        _attr: href
+        _attr_refine: enrich_url
+
+jobs:
+  rank:
+    _attr_refine: bind_rank
+  _index:
+  _locator: ul.jobsearch-ResultsList>li>div.result
+  title: h2.jobTitle>a
+  id:
+    _locator: h2.jobTitle>a
+    _attr: id
+    _attr_refine: refine_job_id
+  href:
+    _locator: h2.jobTitle>a
+    _attr: href
+    _attr_refine: enrich_url
+  company:
+    _locator: div.companyInfo
+    name: span.companyName
+    id:
+      _locator: a
+      _attr: href
+      _attr_refine: refine_company_id
+    location:
+      _locator: div.companyLocation
+      _attr_refine: true
+    rating: span.ratingNumber>span
+  salary:
+    _locator: div.salaryOnly span.estimated-salary>span
+    _attr_refine: refine_salary
+  job_type: div[class=metadata] div.attribute_snippet
+  description:
+    _locator: div.job-snippet>ul
+  listing_date:
+    _locator: span.date

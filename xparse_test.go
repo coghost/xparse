@@ -157,7 +157,7 @@ non_test_keys: div.non`
 	yml := []byte(str)
 	ps := xparse.NewParser(s.rawHtml, yml)
 	ps.DoParse()
-	raw, e := ps.DataStr()
+	raw, e := ps.DataAsJson()
 	s.Nil(e)
 	s.NotNil(raw)
 	s.Equal(raw, "{}")

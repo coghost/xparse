@@ -8,8 +8,10 @@ import (
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/ghodss/yaml"
 	"github.com/gookit/config/v2"
 	"github.com/iancoleman/strcase"
+	"github.com/k0kubun/pp/v3"
 	"github.com/shomali11/util/xconversions"
 	"github.com/thoas/go-funk"
 )
@@ -18,14 +20,25 @@ type Parser struct {
 	Config *config.Config
 	Root   *goquery.Selection
 
+	// devMode
+	devMode bool
+	rank    int
+
 	// map to config
 	ParsedData map[string]interface{}
 
-	// test mode
-	// isTestMode bool
+	// testKeys, only keys in testKeys will be parsed
 	testKeys []string
 
 	// selectedKeys []string
+
+	// Refiners is a map of
+	//  > string: func
+	//  - string is name we defined
+	//  - func has three params:
+	//    + first params is string, which is the raw str get from html (usually by get_text/get_attr)
+	//    + second params is the *config.Config (which is rarely used)
+	//    + third params is *goquery.Selection
 	Refiners map[string]func(raw ...interface{}) interface{}
 }
 
@@ -45,6 +58,16 @@ func (p *Parser) Spawn(raw, ymlCfg []byte) {
 	p.LoadRootSelection(raw)
 }
 
+func (p *Parser) ToggleDevMode(b bool) {
+	p.devMode = b
+}
+
+func (p *Parser) Debug(key interface{}, raw ...interface{}) {
+	if p.devMode {
+		pp.Println(fmt.Sprintf("[%d] %v: (%v)", p.rank, key, raw[0]))
+	}
+}
+
 func (p *Parser) LoadRootSelection(raw []byte) {
 	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(raw))
 	PanicIfErr(err)
@@ -56,8 +79,33 @@ func (p *Parser) LoadConfig(ymlCfg []byte) {
 	p.testKeys = p.Config.Strings("__raw.test_keys")
 }
 
-func (p *Parser) DataStr() (string, error) {
-	return xconversions.Stringify(p.ParsedData)
+func (p *Parser) DataAsJson(args ...interface{}) (string, error) {
+	if len(args) != 0 {
+		return xconversions.Stringify(args[0])
+	} else {
+		return xconversions.Stringify(p.ParsedData)
+	}
+}
+
+func (p *Parser) MustDataAsJson(args ...interface{}) string {
+	raw, err := p.DataAsJson(args...)
+	PanicIfErr(err)
+	return raw
+}
+
+func (p *Parser) DataAsYaml(args ...interface{}) (string, error) {
+	raw, err := p.DataAsJson(args...)
+	if err != nil {
+		return raw, err
+	}
+	v, e := yaml.JSONToYAML([]byte(raw))
+	return string(v), e
+}
+
+func (p *Parser) MustDataAsYaml(args ...interface{}) string {
+	raw, err := p.DataAsYaml(args...)
+	PanicIfErr(err)
+	return raw
 }
 
 func (p *Parser) DoParse() {
@@ -81,7 +129,7 @@ func (p *Parser) filterKey(key string) (b bool) {
 		return
 	}
 
-	if funk.NotEmpty(p.testKeys) && !funk.Contains(p.testKeys, key) {
+	if p.devMode && funk.NotEmpty(p.testKeys) && !funk.Contains(p.testKeys, key) {
 		return
 	}
 
@@ -138,11 +186,13 @@ func (p *Parser) handle_map(
 
 	case []*goquery.Selection:
 		var allSubData []map[string]interface{}
+		p.rank = 0
 		for _, gs := range dom {
 			subData := make(map[string]interface{})
 			allSubData = append(allSubData, subData)
 
 			p.parse_dom_nodes(cfg, gs, subData)
+			p.rank++
 		}
 		data[key] = allSubData
 	}
@@ -241,7 +291,7 @@ func (p *Parser) getNodesAttrs(
 
 func (p *Parser) getSelectionAttr(key string, cfg map[string]interface{}, selection *goquery.Selection) interface{} {
 	raw := p.getRawAttr(cfg, selection)
-	raw = p.refineAttr(key, raw, cfg)
+	raw = p.refineAttr(key, raw, cfg, selection)
 	return raw
 }
 
@@ -289,7 +339,7 @@ func Invoke(any interface{}, name string, args ...interface{}) reflect.Value {
 	return v
 }
 
-func (p *Parser) refineAttr(key string, raw interface{}, cfg map[string]interface{}) interface{} {
+func (p *Parser) refineAttr(key string, raw interface{}, cfg map[string]interface{}, selection *goquery.Selection) interface{} {
 	attr := cfg[ATTR]
 	refine := cfg[ATTR_REFINE]
 	if refine == nil {
@@ -306,13 +356,20 @@ func (p *Parser) refineAttr(key string, raw interface{}, cfg map[string]interfac
 			injectFn, b = p.Refiners[mtd_name]
 			if !b {
 				fmt.Println(Redf(`Cannot find Refiner: (%s or %s)`, mtd_name, MtdName))
-				fmt.Println(Greenf(`Please assign it to parser.Refiners by either one:
-  - parser.Refiners["%s"] = your_func
-  - parser.Refiners["%s"] = your_func`, mtd_name, MtdName))
+				fmt.Println(Greenf(`Please add following method:
+
+func (p %[3]T) %[1]s(raw ...interface{}) interface{} {
+	v := cast.ToString(raw[0])
+	// TODO:
+}
+
+then assign it to parser.Refiners by either one:
+  - parser.Refiners["%[2]s"] = %[1]s
+  - parser.Refiners["%[1]s"] = %[1]s`, MtdName, mtd_name, p))
 				os.Exit(0)
 			}
 		}
-		return injectFn(raw, p.Config)
+		return injectFn(raw, p.Config, selection)
 	}
 
 	param := []reflect.Value{reflect.ValueOf(raw)}
@@ -344,4 +401,8 @@ func (p *Parser) EnrichUrl(raw interface{}) interface{} {
 	domain := p.Config.String("__raw.site_url")
 	uri := EnrichUrl(raw, domain)
 	return uri
+}
+
+func (p *Parser) BindRank(raw interface{}) interface{} {
+	return p.rank
 }

@@ -1,14 +1,14 @@
 package main
 
 import (
-	"fmt"
 	"path/filepath"
 	"strings"
-	"xparse"
+
+	"github.com/coghost/xparse"
+	"github.com/coghost/xpretty"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gookit/goutil/fsutil"
-	"github.com/k0kubun/pp/v3"
 	"github.com/spf13/cast"
 )
 
@@ -89,23 +89,22 @@ func main() {
 	ps.Refiners["RefineCompanyId"] = ps.RefineCompanyId
 	ps.DoParse()
 
-	rawJson := ps.MustDataAsJson()
+	verify_it(ps)
+}
 
+func verify_it(ps *IndeedParser) {
+	rawJson := ps.MustDataAsJson()
 	// verify all existed keys
 	all := []string{}
 	xparse.GetMapKeys(&all, ps.ParsedData["jobs"])
 	xparse.Verify(rawJson, all, 0)
 
 	// verify specified keys
-	comp := []string{
-		"company.name",
+	want := []string{
 		"company.id",
-		"company.location",
-		"company.rating",
+		"salary",
 	}
-	dat := xparse.Verify(rawJson, comp, 2)
-	pp.Println(dat)
-
-	ry := ps.MustDataAsYaml()
-	fmt.Println(ry)
+	xparse.Verify(rawJson, want, 0)
+	xpretty.PrettyJson(rawJson)
+	// xparse.PrettyJsonAsYaml(rawJson, xparse.WithFilterKey("jobs.#.salary"))
 }

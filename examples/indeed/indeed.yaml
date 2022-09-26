@@ -39,7 +39,9 @@ jobs:
     location:
       _locator: div.companyLocation
       _attr_refine: true
-    rating: span.ratingNumber>span
+    rating:
+      _locator: span.ratingNumber>span
+      _attr_refine: to_float
   salary:
     _locator: div.salaryOnly span.estimated-salary>span
     _attr_refine: refine_salary

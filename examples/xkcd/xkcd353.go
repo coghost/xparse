@@ -2,8 +2,8 @@ package main
 
 import (
 	"path/filepath"
-	"xparse"
 
+	"github.com/coghost/xparse"
 	"github.com/gookit/goutil/fsutil"
 	"github.com/k0kubun/pp/v3"
 )

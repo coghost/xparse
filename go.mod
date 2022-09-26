@@ -6,10 +6,10 @@ go 1.19
 
 require (
 	github.com/PuerkitoBio/goquery v1.8.0
-	github.com/coghost/xpretty v0.0.0-00010101000000-000000000000
+	github.com/coghost/xpretty v0.0.0-20220919084016-93df095a8db3
 	github.com/ghodss/yaml v1.0.0
-	github.com/gookit/config/v2 v2.1.5
-	github.com/gookit/goutil v0.5.11
+	github.com/gookit/config/v2 v2.1.6
+	github.com/gookit/goutil v0.5.12
 	github.com/iancoleman/strcase v0.2.0
 	github.com/k0kubun/pp/v3 v3.1.0
 	github.com/shomali11/util v0.0.0-20220717175126-f0771b70947f

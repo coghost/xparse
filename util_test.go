@@ -2,7 +2,8 @@ package xparse_test
 
 import (
 	"testing"
-	"xparse"
+
+	"github.com/coghost/xparse"
 
 	"github.com/k0kubun/pp/v3"
 	"github.com/shomali11/util/xconversions"
@@ -48,16 +49,15 @@ func (s *UtilSuite) Test01_GetKeys() {
 	xparse.GetMapKeys(&all, dat)
 	pp.Println(all)
 	// xparse.PrintAllKeys(dat)
-	s.Equal()
 }
 
 func (s *UtilSuite) Test02_CutStr() {
 	raw := "a,b,c,d,e"
-	v, b := xparse.CutStrBySeparator(raw, ",", 6)
+	v, b := xparse.GetStrBySplit(raw, ",", 6)
 	s.Equal("e", v)
 	s.Equal(true, b)
 
-	v, b = xparse.CutStrBySeparator(raw, ",", -1)
+	v, b = xparse.GetStrBySplit(raw, ",", -1)
 	s.Equal("e", v)
 	s.Equal(true, b)
 }

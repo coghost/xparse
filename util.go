@@ -8,7 +8,6 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/fatih/color"
 	"github.com/gookit/config/v2"
 	"github.com/gookit/config/v2/yamlv3"
 )
@@ -29,54 +28,6 @@ func Yaml2Config(raw []byte) (cf *config.Config) {
 	err := cf.LoadSources(config.Yaml, raw)
 	PanicIfErr(err)
 	return cf
-}
-
-var ReservedWords = map[string]string{
-	"attr":            "_attr",
-	"attr_refine":     "_attr_refine",
-	"children":        "_children",
-	"index":           "_index",
-	"joiner":          "_joiner",
-	"striped":         "_striped",
-	"locator":         "_locator",
-	"locator_extract": "_locator_extract",
-	"prefix_extract":  "_extract",
-	"prefix_refine":   "_refine",
-}
-
-const (
-	ATTR            = "_attr"
-	ATTR_REFINE     = "_attr_refine"
-	CHILDREN        = "_children"
-	INDEX           = "_index"
-	JOINER          = "_joiner"
-	STRIPPED        = "_striped"
-	LOCATOR         = "_locator"
-	LOCATOR_EXTRACT = "_locator_extract"
-	PREFIX_EXTRACT  = "_extract"
-	PREFIX_REFINE   = "_refine"
-)
-
-var RedPrintf = color.New(color.FgRed, color.Bold).PrintfFunc()
-var CyanPrintf = color.New(color.FgCyan, color.Bold).PrintfFunc()
-var YellowPrintf = color.New(color.FgYellow, color.Bold).PrintfFunc()
-var GreenPrintf = color.New(color.FgGreen, color.Bold).PrintfFunc()
-
-var Red = color.New(color.FgRed, color.Bold).SprintFunc()
-var Redf = color.New(color.FgRed, color.Bold).SprintfFunc()
-var Green = color.New(color.FgGreen, color.Bold).SprintFunc()
-var Greenf = color.New(color.FgGreen, color.Bold).SprintfFunc()
-var White = color.New(color.FgHiWhite, color.Bold).SprintFunc()
-var Whitef = color.New(color.FgHiWhite, color.Bold).SprintfFunc()
-var Yellow = color.New(color.FgYellow, color.Bold).SprintFunc()
-var Yellowf = color.New(color.FgYellow, color.Bold).SprintfFunc()
-
-// red foreground underline
-var Redfu = color.New(color.FgRed, color.Bold, color.Underline).SprintfFunc()
-var Redfc = color.New(color.FgRed, color.Bold, color.CrossedOut).SprintfFunc()
-
-func SetColor(b bool) {
-	color.NoColor = !b
 }
 
 func EnrichUrl(raw interface{}, domain string) interface{} {
@@ -135,19 +86,19 @@ func Insert[T Basic](a []T, index int, value T) []T {
 	return a
 }
 
-// CutStrBySeparator: split raw str with separator and join from offset
+// GetStrBySplit: split raw str with separator and join from offset
 //
 //	example:
 //	 raw = "a,b,c,d,e"
-//	 v, b := CutStrBySeparator(raw, ",", 1)
+//	 v, b := GetStrBySplit(raw, ",", 1)
 //	 // v = "bcde", b = true
 //
-//	 v, b := CutStrBySeparator(raw, "_", 1)
+//	 v, b := GetStrBySplit(raw, "_", 1)
 //	 // v = "a,b,c,d,e", b = false
 //
 // @return string
 // @return bool
-func CutStrBySeparator(raw string, sep string, offset int) (string, bool) {
+func GetStrBySplit(raw string, sep string, offset int) (string, bool) {
 	if strings.Contains(raw, sep) {
 		arr := strings.Split(raw, sep)
 		i := offset

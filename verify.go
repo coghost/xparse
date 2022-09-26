@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/thoas/go-funk"
+	"github.com/coghost/xpretty"
 	"github.com/tidwall/gjson"
 )
 
@@ -12,20 +12,20 @@ import (
 //
 // level: 0(no print)/1(print all)/2(print only missed keys)
 //
-//	@return map
-func Verify(rawJson string, keys []string, level int) map[string][]string {
-	failed := make(map[string][]string)
+//	@return failed_keys
+func Verify(rawJson string, keys []string, level int) (failed map[string][]string) {
+	failed = make(map[string][]string)
 	result := gjson.Get(rawJson, "jobs")
 	result.ForEach(func(_, value gjson.Result) bool {
-		fn := Greenf
+		fn := xpretty.Greenf
 		rank := ""
 		arr := []string{}
 		for _, key := range keys {
 			ok := true
 			_rank, val := value.Get("rank").Raw, value.Get(key).String()
-			_fn := Greenf
-			if funk.IsEmpty(val) {
-				_fn = Redfu
+			_fn := xpretty.Greenf
+			if val == "" {
+				_fn = xpretty.Redfu
 				fn = _fn
 				failed[key] = append(failed[key], _rank)
 				ok = false

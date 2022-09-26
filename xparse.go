@@ -8,11 +8,13 @@ import (
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/coghost/xpretty"
 	"github.com/ghodss/yaml"
 	"github.com/gookit/config/v2"
 	"github.com/iancoleman/strcase"
 	"github.com/k0kubun/pp/v3"
 	"github.com/shomali11/util/xconversions"
+	"github.com/spf13/cast"
 	"github.com/thoas/go-funk"
 )
 
@@ -118,7 +120,7 @@ func (p *Parser) DoParse() {
 		case map[string]interface{}:
 			p.parseDom(key, cfgType, p.Root, p.ParsedData)
 		default:
-			fmt.Println(Redf("[NON-MAP] {%v:%v}, please move into a map instead", key, cfg))
+			fmt.Println(xpretty.Redf("[NON-MAP] {%v:%v}, please move into a map instead", key, cfg))
 			continue
 		}
 	}
@@ -153,7 +155,7 @@ func (p *Parser) parseDom(key string, cfg interface{}, selection *goquery.Select
 	case map[string]interface{}:
 		p.handle_map(key, v, selection, data)
 	default:
-		panic(Redf("unknown type of (%v:%v), only support (1:string or 2:map[string]interface{})", key, cfg))
+		panic(xpretty.Redf("unknown type of (%v:%v), only support (1:string or 2:map[string]interface{})", key, cfg))
 	}
 }
 
@@ -252,12 +254,12 @@ func (p *Parser) getAllElems(key string, cfg map[string]interface{}, selection *
 			case int:
 				d = append(d, elems.Eq(v))
 			default:
-				panic(Redf("all indexes should be int, but (%s is %T: %v)\n", key, val, val))
+				panic(xpretty.Redf("all indexes should be int, but (%s is %T: %v)\n", key, val, val))
 			}
 		}
 		return d
 	default:
-		panic(Redf("index should be int or []interface{}, but (%s is %T: %v)\n", key, val, val))
+		panic(xpretty.Redf("index should be int or []interface{}, but (%s is %T: %v)\n", key, val, val))
 	}
 }
 
@@ -285,12 +287,13 @@ func (p *Parser) getNodesAttrs(
 		}
 		data[key] = subData
 	default:
-		panic(Redf("unknown type of dom %s:%v %v", key, cfg, dom))
+		panic(xpretty.Redf("unknown type of dom %s:%v %v", key, cfg, dom))
 	}
 }
 
 func (p *Parser) getSelectionAttr(key string, cfg map[string]interface{}, selection *goquery.Selection) interface{} {
 	raw := p.getRawAttr(cfg, selection)
+	raw = p.stripChars(key, raw, cfg)
 	raw = p.refineAttr(key, raw, cfg, selection)
 	return raw
 }
@@ -316,15 +319,28 @@ func (p *Parser) getRawAttr(cfg map[string]interface{}, selection *goquery.Selec
 		}
 		return d
 	default:
-		panic(Redf("attr should be (string or []interface{}), but (%s is %T: %v)\n", attr, attrType, attrType))
+		panic(xpretty.Redf("attr should be (string or []interface{}), but (%s is %T: %v)\n", attr, attrType, attrType))
 	}
 }
 
 func (p *Parser) TrimSpace(txt string, cfg map[string]interface{}) string {
-	if cfg[STRIPPED] == nil {
+	if cfg[STRIP] == nil {
 		return txt
 	}
 	return strings.TrimSpace(txt)
+}
+
+func (p *Parser) stripChars(key string, raw interface{}, cfg map[string]interface{}) interface{} {
+	st := cfg[STRIP]
+	if st == true {
+		return raw
+	}
+
+	switch v := st.(type) {
+	case string:
+		return strings.ReplaceAll(raw.(string), v, "")
+	}
+	return raw
 }
 
 // Invoke
@@ -355,8 +371,8 @@ func (p *Parser) refineAttr(key string, raw interface{}, cfg map[string]interfac
 		if !b {
 			injectFn, b = p.Refiners[mtd_name]
 			if !b {
-				fmt.Println(Redf(`Cannot find Refiner: (%s or %s)`, mtd_name, MtdName))
-				fmt.Println(Greenf(`Please add following method:
+				fmt.Println(xpretty.Redf(`Cannot find Refiner: (%s or %s)`, mtd_name, MtdName))
+				fmt.Println(xpretty.Greenf(`Please add following method:
 
 func (p %[3]T) %[1]s(raw ...interface{}) interface{} {
 	v := cast.ToString(raw[0])
@@ -391,7 +407,7 @@ func (p *Parser) getRefineMethodName(key string, refine, attr interface{}) strin
 	case string:
 		mtdName = mtd
 	default:
-		panic(Redf("refine method should be (bool or str), but (%s is %T: %v)\n", key, mtd, mtd))
+		panic(xpretty.Redf("refine method should be (bool or str), but (%s is %T: %v)\n", key, mtd, mtd))
 	}
 
 	return mtdName
@@ -401,6 +417,10 @@ func (p *Parser) EnrichUrl(raw interface{}) interface{} {
 	domain := p.Config.String("__raw.site_url")
 	uri := EnrichUrl(raw, domain)
 	return uri
+}
+
+func (p *Parser) ToFloat(raw interface{}) float64 {
+	return ToFixed(cast.ToFloat64(raw), 2)
 }
 
 func (p *Parser) BindRank(raw interface{}) interface{} {

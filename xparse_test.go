@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"path/filepath"
 	"testing"
-	"xparse"
+
+	"github.com/coghost/xparse"
+	"github.com/coghost/xpretty"
 
 	"github.com/gookit/config/v2"
 	"github.com/gookit/goutil/fsutil"
@@ -164,7 +166,7 @@ non_test_keys: div.non`
 }
 
 func (s *ParserSuite) Test03_00InRealWorld() {
-	xparse.SetColor(true)
+	xpretty.ToggleColor(true)
 	s.parser.DoParse()
 
 	dat, err := json.Marshal(s.parser.ParsedData)

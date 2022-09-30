@@ -38,6 +38,7 @@ func (s *ParserSuite) _refine_alt_alt(raw ...interface{}) interface{} {
 }
 
 func (s *ParserSuite) SetupSuite() {
+	xpretty.Initialize(xpretty.WithColor(true), xpretty.WithDummyLog(true))
 	home := xparse.GetProjectHome("xparse")
 	s.rawHtml = fsutil.MustReadFile(filepath.Join(home, "/examples/xkcd/xkcd_353.html"))
 	s.rawYaml = fsutil.MustReadFile(filepath.Join(home, "/examples/xkcd/xkcd.yaml"))
@@ -166,7 +167,6 @@ non_test_keys: div.non`
 }
 
 func (s *ParserSuite) Test03_00InRealWorld() {
-	xpretty.ToggleColor(true)
 	s.parser.DoParse()
 
 	dat, err := json.Marshal(s.parser.ParsedData)
@@ -352,4 +352,10 @@ func (s *ParserSuite) Test03_00InRealWorld() {
 }
 	`
 	s.JSONEq(exp, string(dat))
+}
+
+func (s *ParserSuite) Test_04() {
+	s.parser.ToggleDevMode(true)
+	s.parser.DoParse()
+	xpretty.PrettyJson(s.parser.MustDataAsJson())
 }

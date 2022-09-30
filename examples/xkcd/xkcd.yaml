@@ -1,5 +1,8 @@
 __raw:
   site_url: https://xkcd.com/
+  test_keys:
+    - bottom
+    - comic_l.*
 
 page:
   title: head>title
@@ -7,7 +10,7 @@ page:
   license: div#licenseText
   license1:
     _locator: div#licenseText
-    _striped: true
+    _strip: true
   by_multiple_locators:
     _index: ~
     _locator: a

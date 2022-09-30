@@ -16,11 +16,15 @@ import (
 	"github.com/shomali11/util/xconversions"
 	"github.com/spf13/cast"
 	"github.com/thoas/go-funk"
+	"github.com/tidwall/gjson"
 )
 
 type Parser struct {
 	Config *config.Config
 	Root   *goquery.Selection
+	JRoot  gjson.Result
+
+	RawData string
 
 	// devMode
 	devMode bool
@@ -31,6 +35,9 @@ type Parser struct {
 
 	// testKeys, only keys in testKeys will be parsed
 	testKeys []string
+	//
+	forceParsedKey bool
+	nestedKeys     []string
 
 	// selectedKeys []string
 
@@ -112,10 +119,6 @@ func (p *Parser) MustDataAsYaml(args ...interface{}) string {
 
 func (p *Parser) DoParse() {
 	for key, cfg := range p.Config.Data() {
-		if !p.filterKey(key) {
-			continue
-		}
-
 		switch cfgType := cfg.(type) {
 		case map[string]interface{}:
 			p.parseDom(key, cfgType, p.Root, p.ParsedData)
@@ -126,12 +129,46 @@ func (p *Parser) DoParse() {
 	}
 }
 
-func (p *Parser) filterKey(key string) (b bool) {
+func (p *Parser) popNestedKeys() {
+	if len(p.nestedKeys) == 0 {
+		return
+	}
+	p.nestedKeys = p.nestedKeys[:len(p.nestedKeys)-1]
+}
+
+func (p *Parser) checkNestedKeys(key string) bool {
+	if !strings.Contains(key, "__") {
+		p.nestedKeys = append(p.nestedKeys, key)
+	}
+	for _, tk := range p.testKeys {
+		for _, nk := range p.nestedKeys {
+			_tk := strings.ReplaceAll(tk, ".*", "")
+			b := strings.Contains(tk, ".*") && strings.Contains(nk, _tk)
+			if b {
+				p.forceParsedKey = b
+				// xpretty.DummyErrorLog(key, p.forceParsedKey)
+				return true
+			}
+		}
+	}
+	p.forceParsedKey = false
+	return false
+}
+
+func (p *Parser) requiredKey(key string) (b bool) {
 	if strings.HasPrefix(key, "__") {
 		return
 	}
 
-	if p.devMode && funk.NotEmpty(p.testKeys) && !funk.Contains(p.testKeys, key) {
+	if !p.devMode {
+		return true
+	}
+
+	if p.forceParsedKey {
+		return true
+	}
+
+	if funk.NotEmpty(p.testKeys) && !funk.Contains(p.testKeys, key) {
 		return
 	}
 
@@ -143,6 +180,15 @@ func (p *Parser) filterKey(key string) (b bool) {
 // 1. str
 // 2. map[string]interface{}
 func (p *Parser) parseDom(key string, cfg interface{}, selection *goquery.Selection, data map[string]interface{}) {
+	p.checkNestedKeys(key)
+	defer p.popNestedKeys()
+
+	b := p.requiredKey(key)
+	// xpretty.DummyLog(key, p.testKeys, b, p.forceParsedKey, p.nestedKeys)
+	if !b {
+		return
+	}
+
 	if funk.IsEmpty(cfg) {
 		data[key] = p.getSelectionAttr(key, map[string]interface{}{key: ""}, selection)
 		return
@@ -355,7 +401,7 @@ func Invoke(any interface{}, name string, args ...interface{}) reflect.Value {
 	return v
 }
 
-func (p *Parser) refineAttr(key string, raw interface{}, cfg map[string]interface{}, selection *goquery.Selection) interface{} {
+func (p *Parser) refineAttr(key string, raw interface{}, cfg map[string]interface{}, selection interface{}) interface{} {
 	attr := cfg[ATTR]
 	refine := cfg[ATTR_REFINE]
 	if refine == nil {

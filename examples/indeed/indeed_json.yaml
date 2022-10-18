@@ -1,0 +1,47 @@
+__raw:
+  site_url: https://www.indeed.com/
+  test_keys:
+    - jobs
+    - salary.*
+    - title
+    - reviews.*
+
+jobs:
+  _locator: jobs
+  rank:
+    _attr_refine: bind_rank
+  _index:
+    - 0
+    - 11
+  title: company
+  rating:
+    _locator: companyRating
+    _type: f
+  reviews:
+    # _locator is nil, so will reuse previous one
+    count:
+      _locator: companyReviewCount
+      _type: i
+    link: companyReviewLink
+    rated:
+      _locator: highlyRatedEmployer
+      _type: b
+  d2iEnabled:
+    _locator: d2iEnabled
+    _type: b
+  branding:
+    _locator: companyBrandingAttributes
+    header: headerImageUrl
+    logo: logoUrl
+  salary:
+    _locator: estimatedSalary
+    max: max
+    min: min
+  taxonomy_attributes:
+    _index:
+    _locator: taxonomyAttributes
+    label: label
+    attributes:
+      _locator: attributes
+      label: label
+      suid: suid

@@ -1,0 +1,20 @@
+jobs:
+  _locator: jobs
+  _index:
+    - 0
+    - 11
+  title: title
+  reviews:
+    # _locator is nil, so will reuse previous one
+    count:
+      _locator: companyReviewCount
+      _type: i
+    count_f:
+      _locator: companyReviewCount
+      _type: f
+    link: companyReviewLink
+    rated:
+      _locator: highlyRatedEmployer
+      _type: b
+  rank:
+    _attr_refine: bind_rank

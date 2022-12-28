@@ -6,7 +6,6 @@ import (
 
 	"github.com/coghost/xpretty"
 	"github.com/gookit/config/v2"
-	"github.com/spf13/cast"
 	"github.com/thoas/go-funk"
 	"github.com/tidwall/gjson"
 )
@@ -20,7 +19,7 @@ type JsonParser struct {
 	Parser
 }
 
-func NewJsonParser(rawHtml, ymlMap []byte) *JsonParser {
+func NewJsonParser(rawData, ymlMap []byte) *JsonParser {
 	p := &JsonParser{
 		Parser{
 			Config:     &config.Config{},
@@ -29,7 +28,7 @@ func NewJsonParser(rawHtml, ymlMap []byte) *JsonParser {
 		},
 	}
 
-	p.Spawn(rawHtml, ymlMap)
+	p.Spawn(rawData, ymlMap)
 	return p
 }
 
@@ -44,6 +43,7 @@ func (p *JsonParser) LoadRootSelection(raw []byte) {
 }
 
 func (p *JsonParser) DoParse() {
+	p.runCheck()
 	for key, cfg := range p.Config.Data() {
 		switch cfgType := cfg.(type) {
 		case map[string]interface{}:
@@ -85,20 +85,7 @@ func (p *JsonParser) getSelectionAttr(key string, cfg map[string]interface{}, re
 	var raw interface{}
 	raw = result.String()
 	raw = p.refineAttr(key, raw, cfg, result)
-
-	t, o := cfg[TYPE]
-	if o {
-		switch t {
-		case "b":
-			return cast.ToBool(raw)
-		case "i":
-			return cast.ToInt(raw)
-		case "f":
-			return cast.ToFloat64(raw)
-		}
-	}
-
-	return raw
+	return p.convertToType(raw, cfg)
 }
 
 func (p *JsonParser) handleStr(key string, sel string, result gjson.Result, data map[string]interface{}) {
@@ -123,6 +110,9 @@ func (p *JsonParser) handle_map(
 		subData := make(map[string]interface{})
 		data[key] = subData
 		p.parse_dom_nodes(cfg, dom, subData)
+		if layer == layerWithRank {
+			p.FocusedStub = dom
+		}
 
 	case []gjson.Result:
 		var allSubData []map[string]interface{}
@@ -130,9 +120,13 @@ func (p *JsonParser) handle_map(
 			subData := make(map[string]interface{})
 			allSubData = append(allSubData, subData)
 
+			if layer == layerWithRank {
+				p.FocusedStub = gs
+			}
+
 			p.parse_dom_nodes(cfg, gs, subData)
 			// only calculate rank at first layer
-			if layer == 1 {
+			if layer == layerWithRank {
 				p.rank++
 			}
 		}
@@ -155,33 +149,57 @@ func (p *JsonParser) getAllElems(key string, cfg map[string]interface{}, result 
 		return result
 	}
 
-	if sel == _ORDERED_LIST_CONST {
-		result = gjson.Parse(p.RawData)
-	} else {
-		result = result.Get(sel.(string))
-	}
+	switch sel := sel.(type) {
+	case string:
+		if sel == _ORDERED_LIST_CONST {
+			result = gjson.Parse(p.RawData)
+		} else {
+			result = result.Get(sel)
+		}
+		return p.getOneSelector(key, sel, cfg, result)
+	case []interface{}:
+		var arr []gjson.Result
+		backup := result
 
+		for _, v := range sel {
+			ar1 := strings.Split(v.(string), ".")
+
+			if ar1[0] == PREFIX_LOCATOR_STUB {
+				v = strings.Join(ar1[1:], ".")
+				backup = p.FocusedStub.(gjson.Result)
+			}
+
+			result = backup.Get(v.(string))
+			res := p.getOneSelector(key, v, cfg, result).(gjson.Result)
+			arr = append(arr, res)
+		}
+		return arr
+	case map[string]interface{}:
+		dat := make(map[string]gjson.Result)
+		backup := result
+		for k, v := range sel {
+			result = backup.Get(v.(string))
+			res := p.getOneSelector(key, v, cfg, result).(gjson.Result)
+			dat[k] = res
+		}
+		return dat
+	default:
+		panic(fmt.Sprintf("unsupported key (%T: %s)", sel, sel))
+	}
+}
+
+func (p *JsonParser) getOneSelector(key string, sel interface{}, cfg map[string]interface{}, result gjson.Result) (iface interface{}) {
 	index, exist := cfg[INDEX]
 	if index == nil {
 		if !exist {
 			return p.getIndex(sel, result, 0)
-			// arr := result.Get(sel.(string)).Array()
-			// if len(arr) > 0 {
-			// 	return arr[0]
-			// }
 		}
-
 		return result.Array()
 	}
 
 	switch val := index.(type) {
 	case int:
 		return p.getIndex(sel, result, val)
-		// arr := result.Get(sel.(string)).Array()
-		// if len(arr) > val {
-		// 	return arr[val]
-		// }
-		// return
 	case []interface{}:
 		var d []gjson.Result
 		for _, v := range val {
@@ -189,7 +207,6 @@ func (p *JsonParser) getAllElems(key string, cfg map[string]interface{}, result 
 			case int:
 				r := p.getIndex(sel, result, v)
 				d = append(d, r)
-				// d = append(d, result.Get(fmt.Sprintf("%v.%v", sel, v)))
 			default:
 				panic(xpretty.Redf("all indexes should be int, but (%s is %T: %v)\n", key, val, val))
 			}
@@ -230,6 +247,13 @@ func (p *JsonParser) getNodesAttrs(
 		for _, dm := range dom {
 			d := p.getSelectionAttr(key, cfg, dm)
 			subData = append(subData, d)
+		}
+		data[key] = subData
+	case map[string]gjson.Result:
+		subData := make(map[string]interface{})
+		for k, dm := range dom {
+			d := p.getSelectionAttr(key, cfg, dm)
+			subData[k] = d
 		}
 		data[key] = subData
 	default:

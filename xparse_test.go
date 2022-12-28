@@ -13,9 +13,19 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
+type TParser struct {
+	*xparse.Parser
+}
+
+func newParser(rawHtml, ymlMap []byte) *TParser {
+	return &TParser{
+		xparse.NewParser(rawHtml, ymlMap),
+	}
+}
+
 type ParserSuite struct {
 	suite.Suite
-	parser *xparse.Parser
+	parser *TParser
 
 	rawHtml []byte
 	rawYaml []byte
@@ -25,16 +35,15 @@ func TestParser(t *testing.T) {
 	suite.Run(t, new(ParserSuite))
 }
 
-func refine_image_1_src(raw ...interface{}) interface{} {
+func RefineImage_1Src(raw ...interface{}) interface{} {
 	cfg := raw[1].(*config.Config)
 	domain := cfg.String("__raw.site_url")
 	uri := xparse.EnrichUrl(raw[0], domain)
 	return uri
 }
 
-func (s *ParserSuite) _refine_alt_alt(raw ...interface{}) interface{} {
-	cfg := raw[0]
-	return cfg
+func (p *TParser) RefineAltAlt(raw ...interface{}) interface{} {
+	return raw[0]
 }
 
 func (s *ParserSuite) SetupSuite() {
@@ -44,9 +53,9 @@ func (s *ParserSuite) SetupSuite() {
 	s.rawYaml = fsutil.MustReadFile(filepath.Join(home, "/examples/xkcd/xkcd.yaml"))
 	// s.rawHtml = fsutil.MustReadFile("./examples/xkcd/xkcd_353.html")
 	// s.rawYaml = fsutil.MustReadFile("./examples/xkcd/xkcd.yaml")
-	s.parser = xparse.NewParser(s.rawHtml, s.rawYaml)
-	s.parser.Refiners["refine_image_1_src"] = refine_image_1_src
-	s.parser.Refiners["_refine_alt_alt"] = s._refine_alt_alt
+	s.parser = newParser(s.rawHtml, s.rawYaml)
+	// s.parser.Refiners["refine_image_1_src"] = refine_image_1_src
+	// s.parser.Refiners["_refine_alt_alt"] = s._refine_alt_alt
 }
 
 func (s *ParserSuite) TearDownSuite() {
@@ -167,6 +176,7 @@ non_test_keys: div.non`
 }
 
 func (s *ParserSuite) Test03_00InRealWorld() {
+	xparse.UpdateRefiners(s.parser)
 	s.parser.DoParse()
 
 	dat, err := json.Marshal(s.parser.ParsedData)

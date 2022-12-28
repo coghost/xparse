@@ -1,0 +1,16 @@
+jobs:
+  _locator: jobs
+  _index:
+    - 0
+    - 11
+  title: title
+  rank:
+    _attr_refine: bind_rank
+  salary:
+    _locator: estimatedSalary
+    max:
+      _locator: max
+      _attr_refine: true
+    min:
+      _locator: min
+      _attr_refine: _refine_salary_min

@@ -8,12 +8,23 @@ import (
 	"github.com/tidwall/gjson"
 )
 
+type VerifyOp int
+
+const (
+	VerifyPrintNone VerifyOp = iota
+	VerifyPrintAll
+	VerifyPrintMissed
+)
+
 // Verify if rawJson contains keys or not, and print(or not) missed keys according to level
 //
-// level: 0(no print)/1(print all)/2(print only missed keys)
+//	printLevel:
+//	 - 0(print none)
+//	 - 1(print all)
+//	 - 2(print only missed keys)
 //
-//	@return failed_keys
-func Verify(rawJson string, keys []string, level int) (failed map[string][]string) {
+//	  @return failed_keys
+func Verify(rawJson string, keys []string, printLevel VerifyOp) (failed map[string][]string) {
 	failed = make(map[string][]string)
 	result := gjson.Get(rawJson, "jobs")
 	result.ForEach(func(_, value gjson.Result) bool {
@@ -30,7 +41,7 @@ func Verify(rawJson string, keys []string, level int) (failed map[string][]strin
 				failed[key] = append(failed[key], _rank)
 				ok = false
 			}
-			if level == 1 || !ok {
+			if printLevel == VerifyPrintAll || !ok {
 				arr = append(arr, _fn("\t| %s: %s\n", key, val))
 			}
 			rank = _rank
@@ -39,7 +50,7 @@ func Verify(rawJson string, keys []string, level int) (failed map[string][]strin
 		if len(arr) != 0 {
 			arr = Insert(arr, 0, v1)
 		}
-		if level != 0 {
+		if printLevel != 0 {
 			fmt.Print(strings.Join(arr, ""))
 		}
 		return true

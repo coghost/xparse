@@ -1,0 +1,14 @@
+# we get more than one fileds with locator format of gjson multipaths
+# Refer: https://github.com/tidwall/gjson/blob/master/SYNTAX.md#multipaths
+jobs:
+  _locator: jobs
+  _index:
+    - 0
+    - 11
+  title: title
+  rank:
+    _attr_refine: bind_rank
+  salary:
+    _locator: "{estimatedSalary,extractedSalary}"
+  salary2:
+    _locator: "{estimatedSalary,extractedSalary,salarySnippet}"

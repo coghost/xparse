@@ -1,6 +1,7 @@
 package xparse
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"os"
@@ -172,4 +173,31 @@ func GetMapKeys(all *[]string, data interface{}, args ...string) {
 			*all = append(*all, key)
 		}
 	}
+}
+
+// Invoke
+func Invoke(any interface{}, name string, args ...interface{}) []reflect.Value {
+	inputs := make([]reflect.Value, len(args))
+	for i := range args {
+		inputs[i] = reflect.ValueOf(args[i])
+	}
+	v := reflect.ValueOf(any).MethodByName(name)
+	return v.Call(inputs)
+}
+
+func GetMethod(any interface{}, key string) reflect.Value {
+	return reflect.ValueOf(any).MethodByName(key)
+}
+
+func GetField(any interface{}, key string) reflect.Value {
+	return reflect.ValueOf(any).Elem().FieldByName(key)
+}
+
+// Stringify returns a string representation
+func Stringify(data interface{}) (string, error) {
+	b, err := json.Marshal(data)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
 }

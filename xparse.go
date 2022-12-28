@@ -3,7 +3,6 @@ package xparse
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"reflect"
 	"strings"
 
@@ -23,6 +22,9 @@ type Parser struct {
 	Config *config.Config
 	Root   *goquery.Selection
 	JRoot  gjson.Result
+
+	// this is a map's stub, check PREFIX_LOCATOR_STUB for more info
+	FocusedStub interface{}
 
 	RawData string
 
@@ -49,6 +51,8 @@ type Parser struct {
 	//    + second params is the *config.Config (which is rarely used)
 	//    + third params is *goquery.Selection
 	Refiners map[string]func(raw ...interface{}) interface{}
+
+	AttrToBeRefined []string
 }
 
 func NewParser(rawHtml, ymlMap []byte) *Parser {
@@ -88,6 +92,19 @@ func (p *Parser) LoadConfig(ymlCfg []byte) {
 	p.testKeys = p.Config.Strings("__raw.test_keys")
 }
 
+func (p *Parser) GetRawInfo() map[string]interface{} {
+	raw := p.Config.Data()["__raw"]
+	return raw.(map[string]interface{})
+}
+
+func (p *Parser) GetParsedData() map[string]interface{} {
+	return p.ParsedData
+}
+
+func (p *Parser) PrettifyJsonData(args ...interface{}) {
+	xpretty.PrettyJson(p.MustDataAsJson(args...))
+}
+
 func (p *Parser) DataAsJson(args ...interface{}) (string, error) {
 	if len(args) != 0 {
 		return xconversions.Stringify(args[0])
@@ -117,7 +134,52 @@ func (p *Parser) MustDataAsYaml(args ...interface{}) string {
 	return raw
 }
 
+func (p *Parser) Scan() {
+	for key, cfg := range p.Config.Data() {
+		switch cfgType := cfg.(type) {
+		case map[string]interface{}:
+			p.parseAttrs("", key, cfgType)
+		default:
+			fmt.Println(xpretty.Redf("[NON-MAP] {%v:%v}, please move into a map instead", key, cfg))
+			continue
+		}
+	}
+}
+
+func (p *Parser) parseAttrs(parentKey, key string, config interface{}) {
+	switch cfg := config.(type) {
+	case map[string]interface{}:
+		if p.isLeaf(cfg) {
+			if _, b := cfg["_attr_refine"]; !b {
+				return
+			}
+			attr := cfg[ATTR]
+			refine, b := cfg[ATTR_REFINE]
+			if !b {
+				return
+			}
+
+			name := p.getRefineMethodName(key, refine, attr)
+			name = strcase.ToCamel(name)
+			p.AttrToBeRefined = append(p.AttrToBeRefined, name)
+			p.AttrToBeRefined = funk.UniqString(p.AttrToBeRefined)
+
+			return
+		}
+
+		for k, c := range cfg {
+			p.parseAttrs(key, k, c)
+		}
+	default:
+		return
+	}
+}
+
+func (p *Parser) runCheck() {
+}
+
 func (p *Parser) DoParse() {
+	p.runCheck()
 	for key, cfg := range p.Config.Data() {
 		switch cfgType := cfg.(type) {
 		case map[string]interface{}:
@@ -341,6 +403,23 @@ func (p *Parser) getSelectionAttr(key string, cfg map[string]interface{}, select
 	raw := p.getRawAttr(cfg, selection)
 	raw = p.stripChars(key, raw, cfg)
 	raw = p.refineAttr(key, raw, cfg, selection)
+
+	return p.convertToType(raw, cfg)
+}
+
+func (p *Parser) convertToType(raw interface{}, cfg map[string]interface{}) interface{} {
+	t, o := cfg[TYPE]
+	if o {
+		switch t {
+		case ATTR_TYPE_B:
+			return cast.ToBool(raw)
+		case ATTR_TYPE_I:
+			return cast.ToInt(raw)
+		case ATTR_TYPE_F:
+			return cast.ToFloat64(raw)
+		}
+	}
+
 	return raw
 }
 
@@ -379,7 +458,7 @@ func (p *Parser) TrimSpace(txt string, cfg map[string]interface{}) string {
 func (p *Parser) stripChars(key string, raw interface{}, cfg map[string]interface{}) interface{} {
 	st := cfg[STRIP]
 	if st == true {
-		return raw
+		return strings.TrimSpace(raw.(string))
 	}
 
 	switch v := st.(type) {
@@ -389,16 +468,36 @@ func (p *Parser) stripChars(key string, raw interface{}, cfg map[string]interfac
 	return raw
 }
 
-// Invoke
-//
-//	return Invoke(*p, mtdName, p.Config)
-func Invoke(any interface{}, name string, args ...interface{}) reflect.Value {
-	inputs := make([]reflect.Value, len(args))
-	for i := range args {
-		inputs[i] = reflect.ValueOf(args[i])
+func (p *Parser) isMethodExisted(mtd_name string) (rv reflect.Value, b bool) {
+	// automatically convert snake_case(which is written in yaml) to CamelCase or camelCase
+	// first check camelCase (private method preffered)
+	// if not found then check CamelCase
+	mtdName := strcase.ToLowerCamel(mtd_name)
+	MtdName := strcase.ToCamel(mtd_name)
+
+	method := reflect.ValueOf(p).MethodByName(mtdName)
+	if funk.IsEmpty(method) {
+		method = reflect.ValueOf(p).MethodByName(MtdName)
+		if funk.IsEmpty(method) {
+			return
+		}
 	}
-	v := reflect.ValueOf(any).MethodByName(name)
-	return v
+	return method, true
+}
+
+func (p *Parser) getRefinerFn(mtd_name string) (func(raw ...interface{}) interface{}, bool) {
+	mtdName := strcase.ToLowerCamel(mtd_name)
+	MtdName := strcase.ToCamel(mtd_name)
+
+	injectFn, b := p.Refiners[mtdName]
+	if !b {
+		injectFn, b = p.Refiners[MtdName]
+		if !b {
+			prompt(p, mtdName, MtdName)
+		}
+	}
+
+	return injectFn, b
 }
 
 func (p *Parser) refineAttr(key string, raw interface{}, cfg map[string]interface{}, selection interface{}) interface{} {
@@ -407,31 +506,14 @@ func (p *Parser) refineAttr(key string, raw interface{}, cfg map[string]interfac
 	if refine == nil {
 		return raw
 	}
-
 	mtd_name := p.getRefineMethodName(key, refine, attr)
-	// automatically convert snake_case(which is written in yaml) to CamelCase
-	MtdName := strcase.ToCamel(mtd_name)
-	method := reflect.ValueOf(p).MethodByName(MtdName)
-	if funk.IsEmpty(method) {
-		injectFn, b := p.Refiners[MtdName]
-		if !b {
-			injectFn, b = p.Refiners[mtd_name]
-			if !b {
-				fmt.Println(xpretty.Redf(`Cannot find Refiner: (%s or %s)`, mtd_name, MtdName))
-				fmt.Println(xpretty.Greenf(`Please add following method:
+	method, ok := p.isMethodExisted(mtd_name)
 
-func (p %[3]T) %[1]s(raw ...interface{}) interface{} {
-	v := cast.ToString(raw[0])
-	// TODO:
-}
-
-then assign it to parser.Refiners by either one:
-  - parser.Refiners["%[2]s"] = %[1]s
-  - parser.Refiners["%[1]s"] = %[1]s`, MtdName, mtd_name, p))
-				os.Exit(0)
-			}
+	if !ok {
+		injectFn, b := p.getRefinerFn(mtd_name)
+		if b {
+			return injectFn(raw, p.Config, selection)
 		}
-		return injectFn(raw, p.Config, selection)
 	}
 
 	param := []reflect.Value{reflect.ValueOf(raw)}
@@ -455,20 +537,10 @@ func (p *Parser) getRefineMethodName(key string, refine, attr interface{}) strin
 	default:
 		panic(xpretty.Redf("refine method should be (bool or str), but (%s is %T: %v)\n", key, mtd, mtd))
 	}
-
+	// auto add refine to method startswith "_" like "_abc"
+	// so "_abc" will be converted to "refine_abc"
+	if strings.HasPrefix(mtdName, "_") && !strings.HasPrefix(mtdName, PREFIX_REFINE) {
+		mtdName = PREFIX_REFINE + mtdName
+	}
 	return mtdName
-}
-
-func (p *Parser) EnrichUrl(raw interface{}) interface{} {
-	domain := p.Config.String("__raw.site_url")
-	uri := EnrichUrl(raw, domain)
-	return uri
-}
-
-func (p *Parser) ToFloat(raw interface{}) float64 {
-	return ToFixed(cast.ToFloat64(raw), 2)
-}
-
-func (p *Parser) BindRank(raw interface{}) interface{} {
-	return p.rank
 }

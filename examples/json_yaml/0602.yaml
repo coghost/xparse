@@ -1,0 +1,18 @@
+jobs:
+  _locator: jobs
+  _index:
+    - 0
+    - 11
+  title: title
+  rank:
+    # bind_rank not started with _ will keep it
+    _attr_refine: bind_rank
+  salary:
+    _locator: estimatedSalary
+    max:
+      _locator: max
+      # _max not started with _refine so will be renamed to _refine_max
+      _attr_refine: _max
+    min:
+      _locator: min
+      _attr_refine: _refine_salary_min

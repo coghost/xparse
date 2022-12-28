@@ -84,3 +84,5 @@ const (
 	ATTR_TYPE_F = "f"
 	ATTR_TYPE_I = "i"
 )
+
+const ATTR_SEP = "|||"

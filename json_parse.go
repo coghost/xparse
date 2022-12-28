@@ -88,6 +88,25 @@ func (p *JsonParser) getSelectionAttr(key string, cfg map[string]interface{}, re
 	return p.convertToType(raw, cfg)
 }
 
+func (p *JsonParser) getSelectionSliceAttr(key string, cfg map[string]interface{}, resultArr []gjson.Result) interface{} {
+	var raw []string
+	for _, v := range resultArr {
+		raw = append(raw, v.String())
+	}
+	v := p.refineAttr(key, strings.Join(raw, ATTR_SEP), cfg, resultArr)
+	return p.convertToType(v, cfg)
+}
+
+func (p *JsonParser) getSelectionMapAttr(key string, cfg map[string]interface{}, results map[string]gjson.Result) interface{} {
+	dat := make(map[string]string)
+	for k, v := range results {
+		dat[k] = v.String()
+	}
+	str, _ := Stringify(dat)
+	v := p.refineAttr(key, str, cfg, results)
+	return p.convertToType(v, cfg)
+}
+
 func (p *JsonParser) handleStr(key string, sel string, result gjson.Result, data map[string]interface{}) {
 	data[key] = result.Get(sel).String()
 }
@@ -104,7 +123,7 @@ func (p *JsonParser) handle_map(
 		return
 	}
 
-	elems := p.getAllElems(key, cfg, result)
+	elems, _ := p.getAllElems(key, cfg, result)
 	switch dom := elems.(type) {
 	case gjson.Result:
 		subData := make(map[string]interface{})
@@ -143,10 +162,10 @@ func (p *JsonParser) getIndex(sel interface{}, result gjson.Result, index int) (
 	return
 }
 
-func (p *JsonParser) getAllElems(key string, cfg map[string]interface{}, result gjson.Result) (iface interface{}) {
+func (p *JsonParser) getAllElems(key string, cfg map[string]interface{}, result gjson.Result) (iface interface{}, isComplexSel bool) {
 	sel := cfg[LOCATOR]
 	if sel == nil {
-		return result
+		return result, false
 	}
 
 	switch sel := sel.(type) {
@@ -156,7 +175,7 @@ func (p *JsonParser) getAllElems(key string, cfg map[string]interface{}, result 
 		} else {
 			result = result.Get(sel)
 		}
-		return p.getOneSelector(key, sel, cfg, result)
+		iface = p.getOneSelector(key, sel, cfg, result)
 	case []interface{}:
 		var arr []gjson.Result
 		backup := result
@@ -173,7 +192,8 @@ func (p *JsonParser) getAllElems(key string, cfg map[string]interface{}, result 
 			res := p.getOneSelector(key, v, cfg, result).(gjson.Result)
 			arr = append(arr, res)
 		}
-		return arr
+		iface = arr
+		isComplexSel = true
 	case map[string]interface{}:
 		dat := make(map[string]gjson.Result)
 		backup := result
@@ -182,10 +202,13 @@ func (p *JsonParser) getAllElems(key string, cfg map[string]interface{}, result 
 			res := p.getOneSelector(key, v, cfg, result).(gjson.Result)
 			dat[k] = res
 		}
-		return dat
+		iface = dat
+		isComplexSel = true
 	default:
 		panic(fmt.Sprintf("unsupported key (%T: %s)", sel, sel))
 	}
+
+	return iface, isComplexSel
 }
 
 func (p *JsonParser) getOneSelector(key string, sel interface{}, cfg map[string]interface{}, result gjson.Result) (iface interface{}) {
@@ -236,26 +259,34 @@ func (p *JsonParser) getNodesAttrs(
 	selection gjson.Result,
 	data map[string]interface{},
 ) {
-	elems := p.getAllElems(key, cfg, selection)
+	elems, complexSel := p.getAllElems(key, cfg, selection)
 
 	switch dom := elems.(type) {
 	case gjson.Result:
 		data[key] = p.getSelectionAttr(key, cfg, dom)
 
 	case []gjson.Result:
-		var subData []interface{}
-		for _, dm := range dom {
-			d := p.getSelectionAttr(key, cfg, dm)
-			subData = append(subData, d)
+		if !complexSel {
+			var subData []interface{}
+			for _, dm := range dom {
+				d := p.getSelectionAttr(key, cfg, dm)
+				subData = append(subData, d)
+			}
+			data[key] = subData
+		} else {
+			data[key] = p.getSelectionSliceAttr(key, cfg, dom)
 		}
-		data[key] = subData
 	case map[string]gjson.Result:
-		subData := make(map[string]interface{})
-		for k, dm := range dom {
-			d := p.getSelectionAttr(key, cfg, dm)
-			subData[k] = d
+		if !complexSel {
+			subData := make(map[string]interface{})
+			for k, dm := range dom {
+				d := p.getSelectionAttr(key, cfg, dm)
+				subData[k] = d
+			}
+			data[key] = subData
+		} else {
+			data[key] = p.getSelectionMapAttr(key, cfg, dom)
 		}
-		data[key] = subData
 	default:
 		panic(xpretty.Redf("unknown type of dom %s:%v %v", key, cfg, dom))
 	}

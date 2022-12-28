@@ -311,37 +311,23 @@ func (s *JsonParsesSuite) Test_0602_attrRefineAutoFind() {
 }
 
 func (s *JsonParsesSuite) Test_0701_locator_gjson_multipaths() {
-	rawYaml := getBytes("json_yaml/0702.yaml")
+	rawYaml := getBytes("json_yaml/0701.yaml")
 	p := NewJsonParser(s.rawJson, []byte(rawYaml))
 	p.DoParse()
 
 	want := map[string]interface{}{
 		"jobs": []map[string]interface{}{
 			{
-				"rank": 0,
-				"salary": []interface{}{
-					"",
-					"{ \"max\": 120000, \"min\": 120000, \"type\": \"yearly\" }",
-				},
-				"salary2": []interface{}{
-					"",
-					"{ \"max\": 120000, \"min\": 120000, \"type\": \"yearly\" }",
-					"{ \"salaryTextFormatted\": false, \"source\": \"EXTRACTION\", \"text\": \"$120,000 a year\" }",
-				},
-				"title": "Front-End Engineer – 2023 (US)",
+				"rank":    0,
+				"salary":  "{\"extractedSalary\":{ \"max\": 120000, \"min\": 120000, \"type\": \"yearly\" }}",
+				"salary2": "{\"extractedSalary\":{ \"max\": 120000, \"min\": 120000, \"type\": \"yearly\" },\"salarySnippet\":{ \"salaryTextFormatted\": false, \"source\": \"EXTRACTION\", \"text\": \"$120,000 a year\" }}",
+				"title":   "Front-End Engineer – 2023 (US)",
 			},
 			{
-				"rank": 1,
-				"salary": []interface{}{
-					"{\n        \"formattedRange\": \"$74.6K - $94.4K a year\",\n        \"max\": 94426.57,\n        \"min\": 74573.43,\n        \"type\": \"YEARLY\"\n      }",
-					"",
-				},
-				"salary2": []interface{}{
-					"{\n        \"formattedRange\": \"$74.6K - $94.4K a year\",\n        \"max\": 94426.57,\n        \"min\": 74573.43,\n        \"type\": \"YEARLY\"\n      }",
-					"",
-					"{ \"salaryTextFormatted\": false }",
-				},
-				"title": "Python Developer",
+				"rank":    1,
+				"salary":  "{\"estimatedSalary\":{\n        \"formattedRange\": \"$74.6K - $94.4K a year\",\n        \"max\": 94426.57,\n        \"min\": 74573.43,\n        \"type\": \"YEARLY\"\n      }}",
+				"salary2": "{\"estimatedSalary\":{\n        \"formattedRange\": \"$74.6K - $94.4K a year\",\n        \"max\": 94426.57,\n        \"min\": 74573.43,\n        \"type\": \"YEARLY\"\n      },\"salarySnippet\":{ \"salaryTextFormatted\": false }}",
+				"title":   "Python Developer",
 			},
 		},
 	}
@@ -357,30 +343,16 @@ func (s *JsonParsesSuite) Test_0702_locator_list() {
 	want := map[string]interface{}{
 		"jobs": []map[string]interface{}{
 			{
-				"rank": 0,
-				"salary": []interface{}{
-					"",
-					"{ \"max\": 120000, \"min\": 120000, \"type\": \"yearly\" }",
-				},
-				"salary2": []interface{}{
-					"",
-					"{ \"max\": 120000, \"min\": 120000, \"type\": \"yearly\" }",
-					"{ \"salaryTextFormatted\": false, \"source\": \"EXTRACTION\", \"text\": \"$120,000 a year\" }",
-				},
-				"title": "Front-End Engineer – 2023 (US)",
+				"rank":    0,
+				"salary":  "|||{ \"max\": 120000, \"min\": 120000, \"type\": \"yearly\" }",
+				"salary2": "|||{ \"max\": 120000, \"min\": 120000, \"type\": \"yearly\" }|||{ \"salaryTextFormatted\": false, \"source\": \"EXTRACTION\", \"text\": \"$120,000 a year\" }",
+				"title":   "Front-End Engineer – 2023 (US)",
 			},
 			{
-				"rank": 1,
-				"salary": []interface{}{
-					"{\n        \"formattedRange\": \"$74.6K - $94.4K a year\",\n        \"max\": 94426.57,\n        \"min\": 74573.43,\n        \"type\": \"YEARLY\"\n      }",
-					"",
-				},
-				"salary2": []interface{}{
-					"{\n        \"formattedRange\": \"$74.6K - $94.4K a year\",\n        \"max\": 94426.57,\n        \"min\": 74573.43,\n        \"type\": \"YEARLY\"\n      }",
-					"",
-					"{ \"salaryTextFormatted\": false }",
-				},
-				"title": "Python Developer",
+				"rank":    1,
+				"salary":  "{\n        \"formattedRange\": \"$74.6K - $94.4K a year\",\n        \"max\": 94426.57,\n        \"min\": 74573.43,\n        \"type\": \"YEARLY\"\n      }|||",
+				"salary2": "{\n        \"formattedRange\": \"$74.6K - $94.4K a year\",\n        \"max\": 94426.57,\n        \"min\": 74573.43,\n        \"type\": \"YEARLY\"\n      }||||||{ \"salaryTextFormatted\": false }",
+				"title":   "Python Developer",
 			},
 		},
 	}
@@ -396,30 +368,16 @@ func (s *JsonParsesSuite) Test_0703_locator_map() {
 	want := map[string]interface{}{
 		"jobs": []map[string]interface{}{
 			{
-				"rank": 0,
-				"salary": map[string]interface{}{
-					"esti":    "",
-					"extract": "{ \"max\": 120000, \"min\": 120000, \"type\": \"yearly\" }",
-				},
-				"salary2": map[string]interface{}{
-					"esti":    "",
-					"extract": "{ \"max\": 120000, \"min\": 120000, \"type\": \"yearly\" }",
-					"snipt":   "{ \"salaryTextFormatted\": false, \"source\": \"EXTRACTION\", \"text\": \"$120,000 a year\" }",
-				},
+				"rank":    0,
+				"salary":  "{\"esti\":\"\",\"extract\":\"{ \\\"max\\\": 120000, \\\"min\\\": 120000, \\\"type\\\": \\\"yearly\\\" }\"}",
+				"salary2": "{\"esti\":\"\",\"extract\":\"{ \\\"max\\\": 120000, \\\"min\\\": 120000, \\\"type\\\": \\\"yearly\\\" }\",\"snipt\":\"{ \\\"salaryTextFormatted\\\": false, \\\"source\\\": \\\"EXTRACTION\\\", \\\"text\\\": \\\"$120,000 a year\\\" }\"}",
 				"salary3": "{\"kept\":\"iam not changed\"}",
 				"title":   "Front-End Engineer – 2023 (US)",
 			},
 			{
-				"rank": 1,
-				"salary": map[string]interface{}{
-					"esti":    "{\n        \"formattedRange\": \"$74.6K - $94.4K a year\",\n        \"max\": 94426.57,\n        \"min\": 74573.43,\n        \"type\": \"YEARLY\"\n      }",
-					"extract": "",
-				},
-				"salary2": map[string]interface{}{
-					"esti":    "{\n        \"formattedRange\": \"$74.6K - $94.4K a year\",\n        \"max\": 94426.57,\n        \"min\": 74573.43,\n        \"type\": \"YEARLY\"\n      }",
-					"extract": "",
-					"snipt":   "{ \"salaryTextFormatted\": false }",
-				},
+				"rank":    1,
+				"salary":  "{\"esti\":\"{\\n        \\\"formattedRange\\\": \\\"$74.6K - $94.4K a year\\\",\\n        \\\"max\\\": 94426.57,\\n        \\\"min\\\": 74573.43,\\n        \\\"type\\\": \\\"YEARLY\\\"\\n      }\",\"extract\":\"\"}",
+				"salary2": "{\"esti\":\"{\\n        \\\"formattedRange\\\": \\\"$74.6K - $94.4K a year\\\",\\n        \\\"max\\\": 94426.57,\\n        \\\"min\\\": 74573.43,\\n        \\\"type\\\": \\\"YEARLY\\\"\\n      }\",\"extract\":\"\",\"snipt\":\"{ \\\"salaryTextFormatted\\\": false }\"}",
 				"salary3": "{\"kept\":\"iam not changed\"}",
 				"title":   "Python Developer",
 			},
@@ -445,20 +403,14 @@ func (s *JsonParsesSuite) Test_0704_locator_list2() {
 			{
 				"rank": 0,
 				"taxo": map[string]interface{}{
-					"attr": []interface{}{
-						"Full-time",
-						"{ \"salaryTextFormatted\": false, \"source\": \"EXTRACTION\", \"text\": \"$120,000 a year\" }",
-					},
+					"attr": "Full-time|||{ \"salaryTextFormatted\": false, \"source\": \"EXTRACTION\", \"text\": \"$120,000 a year\" }",
 				},
 				"title": "Front-End Engineer – 2023 (US)",
 			},
 			{
 				"rank": 1,
 				"taxo": map[string]interface{}{
-					"attr": []interface{}{
-						"Full-time",
-						"{ \"salaryTextFormatted\": false }",
-					},
+					"attr": "Full-time|||{ \"salaryTextFormatted\": false }",
 				},
 				"title": "Python Developer",
 			},

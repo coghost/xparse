@@ -1,173 +1,120 @@
-package xparse_test
+package xparse
 
 import (
-	"encoding/json"
+	"fmt"
 	"path/filepath"
 	"testing"
 
-	"github.com/coghost/xparse"
 	"github.com/coghost/xpretty"
+	"github.com/k0kubun/pp/v3"
+	"github.com/spf13/cast"
 
 	"github.com/gookit/config/v2"
 	"github.com/gookit/goutil/fsutil"
 	"github.com/stretchr/testify/suite"
 )
 
-type TParser struct {
-	*xparse.Parser
+type xkcdParser struct {
+	*Parser
 }
 
-func newParser(rawHtml, ymlMap []byte) *TParser {
-	return &TParser{
-		xparse.NewParser(rawHtml, ymlMap),
+func newXkcdParser(rawHtml, ymlMap []byte) *xkcdParser {
+	return &xkcdParser{
+		NewHtmlParser(rawHtml, ymlMap),
 	}
 }
 
-type ParserSuite struct {
+type HtmlParserSuite struct {
 	suite.Suite
-	parser *TParser
+	parser *xkcdParser
 
 	rawHtml []byte
 	rawYaml []byte
 }
 
-func TestParser(t *testing.T) {
-	suite.Run(t, new(ParserSuite))
+func TestHtmlParser(t *testing.T) {
+	suite.Run(t, new(HtmlParserSuite))
 }
 
 func RefineImage_1Src(raw ...interface{}) interface{} {
 	cfg := raw[1].(*config.Config)
 	domain := cfg.String("__raw.site_url")
-	uri := xparse.EnrichUrl(raw[0], domain)
+	uri := EnrichUrl(raw[0], domain)
 	return uri
 }
 
-func (p *TParser) RefineAltAlt(raw ...interface{}) interface{} {
+func (p *xkcdParser) RefineAltAlt(raw ...interface{}) interface{} {
 	return raw[0]
 }
 
-func (s *ParserSuite) SetupSuite() {
+func (s *HtmlParserSuite) SetupSuite() {
 	xpretty.Initialize(xpretty.WithColor(true), xpretty.WithDummyLog(true))
-	home := xparse.GetProjectHome("xparse")
+	home := GetProjectHome("xparse")
 	s.rawHtml = fsutil.MustReadFile(filepath.Join(home, "/examples/xkcd/xkcd_353.html"))
 	s.rawYaml = fsutil.MustReadFile(filepath.Join(home, "/examples/xkcd/xkcd.yaml"))
 	// s.rawHtml = fsutil.MustReadFile("./examples/xkcd/xkcd_353.html")
 	// s.rawYaml = fsutil.MustReadFile("./examples/xkcd/xkcd.yaml")
-	s.parser = newParser(s.rawHtml, s.rawYaml)
+	s.parser = newXkcdParser(s.rawHtml, s.rawYaml)
 	// s.parser.Refiners["refine_image_1_src"] = refine_image_1_src
 	// s.parser.Refiners["_refine_alt_alt"] = s._refine_alt_alt
 }
 
-func (s *ParserSuite) TearDownSuite() {
+func (s *HtmlParserSuite) TearDownSuite() {
 }
 
-func (s *ParserSuite) Test01_00PanicsWithUnsupportedType() {
-	str := `__raw:
-page:
-  title: head>title
-  footnote:
-  - div.ok
-  - div.fail
-non_test_keys:
-  - div.fail
-`
+func (s *HtmlParserSuite) Test_0100PanicsWithUnsupportedType() {
+	str := getBytes("html_yaml/0100.yaml")
 	yml := []byte(str)
-	ps := xparse.NewParser(s.rawHtml, yml)
-	s.Panics(func() {
-		ps.DoParse()
-	})
+	ps := NewHtmlParser(s.rawHtml, yml)
+	s.PanicsWithValue(
+		"\x1b[31;1munknown type of (footnote:[div.ok div.fail]), only support (1:string or 2:map[string]interface{})\x1b[0m",
+		func() {
+			ps.DoParse()
+		})
 }
 
-func (s *ParserSuite) Test01_01PanicsWithIndexE1() {
-	str := `__raw:
-middle_container:
-  _locator: div#middleContainer
-  ctitle: div#ctitle
-  comic_nav:
-    _locator: ul.comicNav
-    _index:
-    - b
-    - a
-`
+func (s *HtmlParserSuite) Test_0101PanicsWithIndexE1() {
+	str := getBytes("html_yaml/0101.yaml")
 	yml := []byte(str)
-	ps := xparse.NewParser(s.rawHtml, yml)
-	s.Panics(func() {
-		ps.DoParse()
-	})
+	ps := NewHtmlParser(s.rawHtml, yml)
+	s.PanicsWithValue(
+		"\x1b[31;1mall indexes should be int, but (comic_nav is []interface {}: [b a])\n\x1b[0m",
+		func() {
+			ps.DoParse()
+		})
 }
 
-func (s *ParserSuite) Test01_02PanicsWithIndexE2() {
-	str := `__raw:
-middle_container:
-  _locator: div#middleContainer
-  ctitle: div#ctitle
-  comic_nav:
-    _locator: ul.comicNav
-    _index:
-        fail: href
-        panic: enrich_url
-`
+func (s *HtmlParserSuite) Test_0102PanicsWithIndexE2() {
+	str := getBytes("html_yaml/0102.yaml")
 	yml := []byte(str)
-	ps := xparse.NewParser(s.rawHtml, yml)
-	s.Panics(func() {
-		ps.DoParse()
-	})
+	ps := NewHtmlParser(s.rawHtml, yml)
+	s.PanicsWithValue(
+		"\x1b[31;1mindex should be int or []interface{}, but (comic_nav is map[string]interface {}: map[fail:href panic:enrich_url])\n\x1b[0m",
+		func() {
+			ps.DoParse()
+		})
 }
 
-func (s *ParserSuite) Test01_03PanicsWithRefineMethod() {
-	str := `__raw:
-middle_container:
-  _locator: div#middleContainer
-  ctitle:
-    _locator: div#ctitle
-    _attr_refine: enrich_url
-  ctitle1:
-    _locator: div#ctitle
-    _attr_refine: true
-  comic_nav:
-    _locator: ul.comicNav
-    _index: 0
-    nav:
-      _index: ~
-      _locator: li>a
-      text:
-      href:
-        _attr: href
-        _attr_refine:
-          - enrich_url
-      rel:
-        _attr: rel
-      accesskey:
-        _attr: accesskey
-  comic:
-    _locator: div#comic>img
-    _attr:
-      - src
-      - title
-      - alt
-  transcript: div#transcript
-`
+func (s *HtmlParserSuite) Test_0103PanicsWithRefineMethod() {
+	str := getBytes("html_yaml/0103.yaml")
 	yml := []byte(str)
-	ps := xparse.NewParser(s.rawHtml, yml)
+	ps := NewHtmlParser(s.rawHtml, yml)
 
 	_refine_ctitle1 := func(raw ...interface{}) interface{} {
 		return ""
 	}
 	ps.Refiners["_refine_ctitle1"] = _refine_ctitle1
-	s.Panics(func() {
-		ps.DoParse()
-	})
+	s.PanicsWithValue(
+		"unexpected call to os.Exit(0) during test",
+		func() {
+			ps.DoParse()
+		})
 }
 
-func (s *ParserSuite) Test02_00DataStr() {
-	str := `__raw:
-  test_keys:
-    - non_map
-
-non_map: div.abc
-non_test_keys: div.non`
+func (s *HtmlParserSuite) Test_0200DataStr() {
+	str := getBytes("html_yaml/0200.yaml")
 	yml := []byte(str)
-	ps := xparse.NewParser(s.rawHtml, yml)
+	ps := NewHtmlParser(s.rawHtml, yml)
 	ps.DoParse()
 	raw, e := ps.DataAsJson()
 	s.Nil(e)
@@ -175,14 +122,12 @@ non_test_keys: div.non`
 	s.Equal(raw, "{}")
 }
 
-func (s *ParserSuite) Test03_00InRealWorld() {
-	xparse.UpdateRefiners(s.parser)
+func (s *HtmlParserSuite) Test_0300InRealWorld() {
+	UpdateRefiners(s.parser)
 	s.parser.DoParse()
+	dat := s.parser.MustDataAsJson()
 
-	dat, err := json.Marshal(s.parser.ParsedData)
-	s.Nil(err)
-
-	exp := `
+	want := `
 {
 	"bottom": {
 		"comic": {
@@ -361,11 +306,236 @@ func (s *ParserSuite) Test03_00InRealWorld() {
 	}
 }
 	`
-	s.JSONEq(exp, string(dat))
+	s.JSONEq(want, dat)
 }
 
-func (s *ParserSuite) Test_04() {
-	s.parser.ToggleDevMode(true)
-	s.parser.DoParse()
-	xpretty.PrettyJson(s.parser.MustDataAsJson())
+func (s *HtmlParserSuite) Test_0301DevMode() {
+	rawYaml := getBytes("xkcd/xkcd.yaml")
+	p := NewHtmlParser(s.rawHtml, rawYaml)
+	p.ToggleDevMode(true)
+	p.DoParse()
+
+	want := map[string]interface{}{
+		"bottom": map[string]interface{}{
+			"comic_links": []map[string]interface{}{
+				{
+					"href": "http://threewordphrase.com/",
+					"text": "Three Word Phrase",
+				},
+				{
+					"href": "https://www.smbc-comics.com/",
+					"text": "SMBC",
+				},
+				{
+					"href": "https://www.qwantz.com",
+					"text": "Dinosaur Comics",
+				},
+				{
+					"href": "https://oglaf.com/",
+					"text": "Oglaf",
+				},
+				{
+					"href": "https://www.asofterworld.com",
+					"text": "A Softer World",
+				},
+				{
+					"href": "https://buttersafe.com/",
+					"text": "Buttersafe",
+				},
+				{
+					"href": "https://pbfcomics.com/",
+					"text": "Perry Bible Fellowship",
+				},
+				{
+					"href": "https://questionablecontent.net/",
+					"text": "Questionable Content",
+				},
+				{
+					"href": "http://www.buttercupfestival.com/",
+					"text": "Buttercup Festival",
+				},
+				{
+					"href": "https://www.mspaintadventures.com/",
+					"text": "Homestuck",
+				},
+				{
+					"href": "https://www.jspowerhour.com/",
+					"text": "Junior Scientist Power Hour",
+				},
+				{
+					"href": "https://medium.com/civic-tech-thoughts-from-joshdata/so-you-want-to-reform-democracy-7f3b1ef10597",
+					"text": "Tips on technology and government",
+				},
+				{
+					"href": "https://www.nytimes.com/interactive/2017/climate/what-is-climate-change.html",
+					"text": "Climate FAQ",
+				},
+				{
+					"href": "https://twitter.com/KHayhoe",
+					"text": "Katharine Hayhoe",
+				},
+			},
+		},
+	}
+	s.Equal(want, p.ParsedData)
+}
+
+func getIndeedHtmlData(fname string) (b1, b2 []byte) {
+	rawYaml := getBytes("html_yaml/" + fname)
+	rawHtml := getBytes("indeed/indeed.html")
+
+	return rawHtml, rawYaml
+}
+
+func (s *HtmlParserSuite) Test_0400_index() {
+	rawHtml, rawYaml := getIndeedHtmlData("0400.yaml")
+	p := NewHtmlParser(rawHtml, rawYaml)
+	p.DoParse()
+
+	want := map[string]interface{}{
+		"jobs": []map[string]interface{}{
+			{
+				"rank":  0,
+				"title": "Python Software Engineer",
+			},
+			{
+				"rank":  1,
+				"title": "Data Scientist, Malware Detections Team (Remote)",
+			},
+		},
+	}
+
+	s.Equal(want, p.ParsedData)
+}
+
+func (s *HtmlParserSuite) Test_0500_type() {
+	rawHtml, rawYaml := getIndeedHtmlData("0500.yaml")
+	p := NewHtmlParser(rawHtml, rawYaml)
+	p.DoParse()
+
+	want := map[string]interface{}{
+		"jobs": []map[string]interface{}{
+			{
+				"rank":       0,
+				"rating":     2.000000,
+				"rating_b":   false,
+				"rating_i":   2,
+				"rating_non": "",
+				"title":      "Python Software Engineer",
+			},
+			{
+				"rank":       1,
+				"rating":     3.400000,
+				"rating_b":   false,
+				"rating_i":   3,
+				"rating_non": "",
+				"title":      "Data Scientist, Malware Detections Team (Remote)",
+			},
+		},
+	}
+	s.Equal(want, p.ParsedData)
+}
+
+type htmlParser1 struct {
+	*Parser
+}
+
+func newHtmlParser1(rawHtml, ymlMap []byte) *htmlParser1 {
+	return &htmlParser1{
+		NewHtmlParser(rawHtml, ymlMap),
+	}
+}
+
+func (p *htmlParser1) RefineRating(raw ...interface{}) interface{} {
+	v := cast.ToFloat64(raw[0])
+	return v
+}
+
+func (p *htmlParser1) RefineLevel(raw ...interface{}) interface{} {
+	v := cast.ToFloat64(raw[0])
+	if v <= 0 || v > 5 {
+		return ""
+	} else if v <= 2 {
+		return "D"
+	} else if v <= 3 {
+		return "C"
+	} else if v <= 4 {
+		return "B"
+	} else {
+		return "A"
+	}
+}
+
+func (p *htmlParser1) GenLevel(raw ...interface{}) interface{} {
+	v := p.RefineLevel(raw...)
+	return fmt.Sprintf("G-%v", v)
+}
+
+func (s *HtmlParserSuite) Test_0601_attrRefineManually() {
+	rawHtml, rawYaml := getIndeedHtmlData("0601.yaml")
+	p := newHtmlParser1(rawHtml, rawYaml)
+	p.Refiners["RefineRating"] = p.RefineRating
+	p.Refiners["RefineLevel"] = p.RefineLevel
+	p.Refiners["GenLevel"] = p.GenLevel
+	p.DoParse()
+
+	want := map[string]interface{}{
+		"jobs": []map[string]interface{}{
+			{
+				"rank":           0,
+				"rating":         2.000000,
+				"rating_level":   "D",
+				"rating_level_2": "D",
+				"rating_level_3": "G-D",
+				"title":          "Python Software Engineer",
+			},
+			{
+				"rank":           1,
+				"rating":         3.400000,
+				"rating_level":   "B",
+				"rating_level_2": "B",
+				"rating_level_3": "G-B",
+				"title":          "Data Scientist, Malware Detections Team (Remote)",
+			},
+		},
+	}
+
+	s.Equal(want, p.ParsedData)
+}
+
+func (s *HtmlParserSuite) Test_0602_attrRefineAuto() {
+	rawHtml, rawYaml := getIndeedHtmlData("0601.yaml")
+	p := newHtmlParser1(rawHtml, rawYaml)
+	UpdateRefiners(p)
+	p.DoParse()
+
+	want := map[string]interface{}{
+		"jobs": []map[string]interface{}{
+			{
+				"rank":           0,
+				"rating":         2.000000,
+				"rating_level":   "D",
+				"rating_level_2": "D",
+				"rating_level_3": "G-D",
+				"title":          "Python Software Engineer",
+			},
+			{
+				"rank":           1,
+				"rating":         3.400000,
+				"rating_level":   "B",
+				"rating_level_2": "B",
+				"rating_level_3": "G-B",
+				"title":          "Data Scientist, Malware Detections Team (Remote)",
+			},
+		},
+	}
+
+	s.Equal(want, p.ParsedData)
+}
+
+func (s *HtmlParserSuite) Test_0701_multiSel() {
+	rawHtml, rawYaml := getIndeedHtmlData("0701.yaml")
+	p := NewHtmlParser(rawHtml, rawYaml)
+	p.DoParse()
+	pp.Println(p.ParsedData)
 }

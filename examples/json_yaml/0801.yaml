@@ -1,0 +1,24 @@
+jobs:
+  _locator: jobs
+  _index:
+    - 0
+    - 1
+  title: title
+  rank:
+    _attr_refine: bind_rank
+  taxo:
+    _locator: taxonomyAttributes
+    _index: 0
+    attr_arr:
+      _locator:
+        - attributes.0.label
+        - ___.salarySnippet.text
+      _attr_refine: _taxo_attr_arr
+  tier:
+    _locator: taxonomyAttributes
+    _index: 0
+    attr_map:
+      _locator:
+        label: ___.moreLinks.salaryUrl
+        snip: ___.salarySnippet.text
+      _attr_refine: _taxo_attr_map

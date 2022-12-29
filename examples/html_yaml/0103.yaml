@@ -1,0 +1,30 @@
+middle_container:
+  _locator: div#middleContainer
+  ctitle:
+    _locator: div#ctitle
+    _attr_refine: enrich_url
+  ctitle1:
+    _locator: div#ctitle
+    _attr_refine: true
+  comic_nav:
+    _locator: ul.comicNav
+    _index: 0
+    nav:
+      _index: ~
+      _locator: li>a
+      text:
+      href:
+        _attr: href
+        _attr_refine:
+          - enrich_url
+      rel:
+        _attr: rel
+      accesskey:
+        _attr: accesskey
+  comic:
+    _locator: div#comic>img
+    _attr:
+      - src
+      - title
+      - alt
+  transcript: div#transcript

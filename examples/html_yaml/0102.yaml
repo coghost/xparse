@@ -1,0 +1,8 @@
+middle_container:
+  _locator: div#middleContainer
+  ctitle: div#ctitle
+  comic_nav:
+    _locator: ul.comicNav
+    _index:
+      fail: href
+      panic: enrich_url

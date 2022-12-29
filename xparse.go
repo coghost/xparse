@@ -3,6 +3,7 @@ package xparse
 import (
 	"bytes"
 	"fmt"
+	"math"
 	"reflect"
 	"strings"
 
@@ -16,6 +17,15 @@ import (
 	"github.com/spf13/cast"
 	"github.com/thoas/go-funk"
 	"github.com/tidwall/gjson"
+)
+
+const (
+	nonMapHint = "[NON-MAP] {%v:%v}, please move into a map instead"
+)
+
+const (
+	layerForRank = iota + 1
+	layerForOthers
 )
 
 type Parser struct {
@@ -55,7 +65,7 @@ type Parser struct {
 	AttrToBeRefined []string
 }
 
-func NewParser(rawHtml, ymlMap []byte) *Parser {
+func NewHtmlParser(rawHtml, ymlMap []byte) *Parser {
 	p := &Parser{
 		Config:     &config.Config{},
 		ParsedData: make(map[string]interface{}),
@@ -140,7 +150,7 @@ func (p *Parser) Scan() {
 		case map[string]interface{}:
 			p.parseAttrs("", key, cfgType)
 		default:
-			fmt.Println(xpretty.Redf("[NON-MAP] {%v:%v}, please move into a map instead", key, cfg))
+			fmt.Println(xpretty.Redf(nonMapHint, key, cfg))
 			continue
 		}
 	}
@@ -183,9 +193,9 @@ func (p *Parser) DoParse() {
 	for key, cfg := range p.Config.Data() {
 		switch cfgType := cfg.(type) {
 		case map[string]interface{}:
-			p.parseDom(key, cfgType, p.Root, p.ParsedData)
+			p.parseDom(key, cfgType, p.Root, p.ParsedData, layerForRank)
 		default:
-			fmt.Println(xpretty.Redf("[NON-MAP] {%v:%v}, please move into a map instead", key, cfg))
+			fmt.Println(xpretty.Redf(nonMapHint, key, cfg))
 			continue
 		}
 	}
@@ -241,7 +251,7 @@ func (p *Parser) requiredKey(key string) (b bool) {
 // only support two data type
 // 1. str
 // 2. map[string]interface{}
-func (p *Parser) parseDom(key string, cfg interface{}, selection *goquery.Selection, data map[string]interface{}) {
+func (p *Parser) parseDom(key string, cfg interface{}, selection *goquery.Selection, data map[string]interface{}, layer int) {
 	p.checkNestedKeys(key)
 	defer p.popNestedKeys()
 
@@ -261,7 +271,7 @@ func (p *Parser) parseDom(key string, cfg interface{}, selection *goquery.Select
 		// the recursive end condition
 		p.handleStr(key, v, selection, data)
 	case map[string]interface{}:
-		p.handle_map(key, v, selection, data)
+		p.handle_map(key, v, selection, data, layer)
 	default:
 		panic(xpretty.Redf("unknown type of (%v:%v), only support (1:string or 2:map[string]interface{})", key, cfg))
 	}
@@ -280,6 +290,7 @@ func (p *Parser) handle_map(
 	cfg map[string]interface{},
 	selection *goquery.Selection,
 	data map[string]interface{},
+	layer int,
 ) {
 	if p.isLeaf(cfg) {
 		p.getNodesAttrs(key, cfg, selection, data)
@@ -296,13 +307,19 @@ func (p *Parser) handle_map(
 
 	case []*goquery.Selection:
 		var allSubData []map[string]interface{}
-		p.rank = 0
 		for _, gs := range dom {
+			if layer == layerForRank {
+				p.FocusedStub = gs
+			}
+
 			subData := make(map[string]interface{})
 			allSubData = append(allSubData, subData)
 
 			p.parse_dom_nodes(cfg, gs, subData)
-			p.rank++
+			// only calculate rank at first layer
+			if layer == layerForRank {
+				p.rank++
+			}
 		}
 		data[key] = allSubData
 	}
@@ -327,7 +344,7 @@ func (p *Parser) parse_dom_nodes(
 		if strings.HasPrefix(k, "_") {
 			continue
 		}
-		p.parseDom(k, sc, selection, data)
+		p.parseDom(k, sc, selection, data, layerForOthers)
 	}
 }
 
@@ -414,7 +431,7 @@ func (p *Parser) convertToType(raw interface{}, cfg map[string]interface{}) inte
 		case ATTR_TYPE_B:
 			return cast.ToBool(raw)
 		case ATTR_TYPE_I:
-			return cast.ToInt(raw)
+			return cast.ToInt(math.Round(cast.ToFloat64(raw)))
 		case ATTR_TYPE_F:
 			return cast.ToFloat64(raw)
 		}

@@ -1,0 +1,15 @@
+__raw:
+  site_url: https://xkcd.com/
+  test_keys:
+    - jobs.*
+
+jobs:
+  _locator: ul.jobsearch-ResultsList>li>div.result
+  _index:
+    - 0
+    - 11
+  rank:
+    _attr_refine: bind_rank
+  title: h2.jobTitle>a
+  comp_info:
+    _locator: span.ratingNumber,span.companyName>a

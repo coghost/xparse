@@ -1,0 +1,9 @@
+invalid: div.invalid
+
+page:
+  title: head>title
+  footnote:
+    - div.ok
+    - div.fail
+
+non_test_keys: div.fail

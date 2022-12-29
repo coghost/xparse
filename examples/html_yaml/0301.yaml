@@ -1,0 +1,15 @@
+__raw:
+  site_url: https://xkcd.com/
+  test_keys:
+    - bottom
+    - comic_l.*
+
+bottom:
+  _locator: div#bottom
+  comic_links:
+    _locator: div#comicLinks>a
+    _index: ~
+    text:
+    href:
+      _attr: href
+      _attr_refine: enrich_url

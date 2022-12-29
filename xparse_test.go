@@ -533,9 +533,24 @@ func (s *HtmlParserSuite) Test_0602_attrRefineAuto() {
 	s.Equal(want, p.ParsedData)
 }
 
+type htmlParser2 struct {
+	*Parser
+}
+
+func newHtmlParser2(rawHtml, ymlMap []byte) *htmlParser2 {
+	return &htmlParser2{
+		NewHtmlParser(rawHtml, ymlMap),
+	}
+}
+
+func (p *htmlParser2) RefineCompInfo(raw ...interface{}) interface{} {
+	v := cast.ToString(raw[0])
+	return v
+}
 func (s *HtmlParserSuite) Test_0701_multiSel() {
 	rawHtml, rawYaml := getIndeedHtmlData("0701.yaml")
-	p := NewHtmlParser(rawHtml, rawYaml)
+	p := newHtmlParser2(rawHtml, rawYaml)
+	UpdateRefiners(p)
 	p.DoParse()
 	pp.Println(p.ParsedData)
 }

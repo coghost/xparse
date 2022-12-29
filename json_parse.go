@@ -201,7 +201,6 @@ func (p *JsonParser) getAllElems(key string, cfg map[string]interface{}, result 
 	return iface, isComplexSel
 }
 
-// implementation.
 func (p *JsonParser) handleStub(raw interface{}, result gjson.Result) (interface{}, gjson.Result) {
 	ar1 := strings.Split(raw.(string), ".")
 	if ar1[0] == PREFIX_LOCATOR_STUB {

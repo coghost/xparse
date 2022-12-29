@@ -297,7 +297,7 @@ func (p *Parser) handle_map(
 		return
 	}
 
-	elems := p.getAllElems(key, cfg, selection)
+	elems, _ := p.getAllElems(key, cfg, selection)
 
 	switch dom := elems.(type) {
 	case *goquery.Selection:
@@ -348,30 +348,24 @@ func (p *Parser) parse_dom_nodes(
 	}
 }
 
-func (p *Parser) getAllElems(key string, cfg map[string]interface{}, selection *goquery.Selection) interface{} {
+func (p *Parser) getAllElems(key string, cfg map[string]interface{}, selection *goquery.Selection) (iface interface{}, isComplexSel bool) {
 	sel := cfg[LOCATOR]
 	if sel == nil {
-		return selection
+		return selection, isComplexSel
 	}
 
 	elems := selection.Find(sel.(string))
+	index, existed := cfg[INDEX]
+	isComplexSel = strings.Contains(sel.(string), ",")
 
-	index, exist := cfg[INDEX]
-	if index == nil {
-		if !exist {
-			return elems.First()
-		}
-
-		var d []*goquery.Selection
-		for i := range elems.Nodes {
-			d = append(d, elems.Eq(i))
-		}
-		return d
+	iface = p.handleNullIndex(index, existed, isComplexSel, elems)
+	if iface != nil {
+		return
 	}
 
 	switch val := index.(type) {
 	case int:
-		return elems.Eq(val)
+		iface = elems.Eq(val)
 	case []interface{}:
 		var d []*goquery.Selection
 		for _, v := range val {
@@ -382,10 +376,44 @@ func (p *Parser) getAllElems(key string, cfg map[string]interface{}, selection *
 				panic(xpretty.Redf("all indexes should be int, but (%s is %T: %v)\n", key, val, val))
 			}
 		}
-		return d
+		iface = d
 	default:
 		panic(xpretty.Redf("index should be int or []interface{}, but (%s is %T: %v)\n", key, val, val))
 	}
+
+	return
+}
+
+func (p *Parser) handleNullIndex(index interface{}, existed bool, isComplexSel bool, elems *goquery.Selection) interface{} {
+	// index has 4 types:
+	//  1. without index
+	//  2. index: ~ (index is null)
+	//  3. index: 0
+	//  4. index: [0, 1, ...]
+
+	// if index existed, just return nil
+	if index != nil {
+		return nil
+	}
+
+	// index not existed, just return the first selection
+	if !existed {
+		if isComplexSel {
+			return p.getAllSelections(elems)
+		}
+		return elems.First()
+	}
+
+	// if index is yaml's null: '~' or null
+	return p.getAllSelections(elems)
+}
+
+func (p *Parser) getAllSelections(elems *goquery.Selection) []*goquery.Selection {
+	var d []*goquery.Selection
+	for i := range elems.Nodes {
+		d = append(d, elems.Eq(i))
+	}
+	return d
 }
 
 func (p *Parser) getNodesAttrs(
@@ -395,7 +423,7 @@ func (p *Parser) getNodesAttrs(
 	data map[string]interface{},
 ) {
 	// fmt.Printf("Got %v, %T, %v\n", key, cfg, cfg)
-	elems := p.getAllElems(key, cfg, selection)
+	elems, complexSel := p.getAllElems(key, cfg, selection)
 
 	switch dom := elems.(type) {
 	case *goquery.Document:
@@ -405,15 +433,29 @@ func (p *Parser) getNodesAttrs(
 		data[key] = p.getSelectionAttr(key, cfg, dom)
 
 	case []*goquery.Selection:
-		var subData []interface{}
-		for _, dm := range dom {
-			d := p.getSelectionAttr(key, cfg, dm)
-			subData = append(subData, d)
+		if !complexSel {
+			var subData []interface{}
+			for _, dm := range dom {
+				d := p.getSelectionAttr(key, cfg, dm)
+				subData = append(subData, d)
+			}
+			data[key] = subData
+		} else {
+			data[key] = p.getSelectionSliceAttr(key, cfg, dom)
 		}
-		data[key] = subData
 	default:
 		panic(xpretty.Redf("unknown type of dom %s:%v %v", key, cfg, dom))
 	}
+}
+
+func (p *Parser) getSelectionSliceAttr(key string, cfg map[string]interface{}, resultArr []*goquery.Selection) interface{} {
+	var resArr []string
+	for _, v := range resultArr {
+		raw := p.getRawAttr(cfg, v)
+		resArr = append(resArr, raw.(string))
+	}
+	v := p.refineAttr(key, strings.Join(resArr, ATTR_SEP), cfg, resultArr)
+	return p.convertToType(v, cfg)
 }
 
 func (p *Parser) getSelectionAttr(key string, cfg map[string]interface{}, selection *goquery.Selection) interface{} {

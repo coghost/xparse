@@ -1,8 +1,10 @@
 package xparse
 
 import (
+	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/coghost/xpretty"
@@ -12,7 +14,7 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-type JsonParsesSuite struct {
+type JsonParserSuite struct {
 	suite.Suite
 	parser *JsonParser
 
@@ -23,10 +25,10 @@ type JsonParsesSuite struct {
 }
 
 func TestJsonParser(t *testing.T) {
-	suite.Run(t, new(JsonParsesSuite))
+	suite.Run(t, new(JsonParserSuite))
 }
 
-func (s *JsonParsesSuite) SetupSuite() {
+func (s *JsonParserSuite) SetupSuite() {
 	xpretty.Initialize(xpretty.WithColor(true), xpretty.WithDummyLog(true))
 	home := GetProjectHome("xparse")
 	s.examples_home = home
@@ -40,10 +42,10 @@ func getBytes(path string) []byte {
 	return fsutil.MustReadFile(filepath.Join(home, fmt.Sprintf("/examples/%s", path)))
 }
 
-func (s *JsonParsesSuite) TearDownSuite() {
+func (s *JsonParserSuite) TearDownSuite() {
 }
 
-func (s *JsonParsesSuite) Test_00_gjson_adotb() {
+func (s *JsonParserSuite) Test_00_gjson_adotb() {
 	res := gjson.Parse(string(s.rawJson))
 	job := res.Array()[0]
 	want := "Front-End Engineer – 2023 (US)"
@@ -51,13 +53,13 @@ func (s *JsonParsesSuite) Test_00_gjson_adotb() {
 	s.Equal(want, got)
 }
 
-func (s *JsonParsesSuite) Test_01_init() {
+func (s *JsonParserSuite) Test_01_init() {
 	p := s.parser
 	p.ToggleDevMode(true)
 	p.DoParse()
 }
 
-func (s *JsonParsesSuite) Test_02_array_as_root() {
+func (s *JsonParserSuite) Test_02_array_as_root() {
 	home := GetProjectHome("xparse")
 	rawJson := fsutil.MustReadFile(filepath.Join(home, "/examples/indeed/indeed_array_as_root.json"))
 	rawYaml := fsutil.MustReadFile(filepath.Join(home, "/examples/indeed/indeed_array_as_root.yaml"))
@@ -70,7 +72,7 @@ func (s *JsonParsesSuite) Test_02_array_as_root() {
 	s.Equal(p.ParsedData, p1.ParsedData)
 }
 
-func (s *JsonParsesSuite) Test_03_simple() {
+func (s *JsonParserSuite) Test_03_simple() {
 	rawYaml := `
 jobs:
   _locator: jobs
@@ -151,7 +153,7 @@ jobs:
 	s.Equal(want, p.ParsedData)
 }
 
-func (s *JsonParsesSuite) Test_04_index() {
+func (s *JsonParserSuite) Test_04_index() {
 	rawYaml := `
 jobs:
   _locator: jobs
@@ -182,7 +184,7 @@ jobs:
 	s.Equal(want, p.ParsedData)
 }
 
-func (s *JsonParsesSuite) Test_05_type() {
+func (s *JsonParserSuite) Test_05_type() {
 	rawYaml := getBytes("json_yaml/05.yaml")
 	p := NewJsonParser(s.rawJson, []byte(rawYaml))
 	p.DoParse()
@@ -230,7 +232,7 @@ func refineSalaryMin(raw ...interface{}) interface{} {
 	return "min: $" + v
 }
 
-func (s *JsonParsesSuite) Test_0601_attrRefineManually() {
+func (s *JsonParserSuite) Test_0601_attrRefineManually() {
 	rawYaml := getBytes("json_yaml/0601.yaml")
 	p := NewJsonParser(s.rawJson, []byte(rawYaml))
 	p.Refiners["RefineMax"] = refineMax
@@ -265,7 +267,7 @@ type Parser2 struct {
 	*JsonParser
 }
 
-func newParser(rawData, ymlMap []byte) *Parser2 {
+func newParser2(rawData, ymlMap []byte) *Parser2 {
 	return &Parser2{
 		NewJsonParser(rawData, ymlMap),
 	}
@@ -281,9 +283,9 @@ func (p *Parser2) RefineSalaryMin(raw ...interface{}) interface{} {
 	return v
 }
 
-func (s *JsonParsesSuite) Test_0602_attrRefineAutoFind() {
+func (s *JsonParserSuite) Test_0602_attrRefineAutoFind() {
 	rawYaml := getBytes("json_yaml/0602.yaml")
-	p := newParser(s.rawJson, []byte(rawYaml))
+	p := newParser2(s.rawJson, []byte(rawYaml))
 	UpdateRefiners(p)
 	p.DoParse()
 
@@ -310,7 +312,7 @@ func (s *JsonParsesSuite) Test_0602_attrRefineAutoFind() {
 	s.Equal(want, p.ParsedData)
 }
 
-func (s *JsonParsesSuite) Test_0701_locator_gjson_multipaths() {
+func (s *JsonParserSuite) Test_0701_locator_gjson_multipaths() {
 	rawYaml := getBytes("json_yaml/0701.yaml")
 	p := NewJsonParser(s.rawJson, []byte(rawYaml))
 	p.DoParse()
@@ -335,7 +337,7 @@ func (s *JsonParsesSuite) Test_0701_locator_gjson_multipaths() {
 	s.Equal(want, p.ParsedData)
 }
 
-func (s *JsonParsesSuite) Test_0702_locator_list() {
+func (s *JsonParserSuite) Test_0702_locator_list() {
 	rawYaml := getBytes("json_yaml/0702.yaml")
 	p := NewJsonParser(s.rawJson, []byte(rawYaml))
 	p.DoParse()
@@ -359,7 +361,7 @@ func (s *JsonParsesSuite) Test_0702_locator_list() {
 	s.Equal(want, p.ParsedData)
 }
 
-func (s *JsonParsesSuite) Test_0703_locator_map() {
+func (s *JsonParserSuite) Test_0703_locator_map() {
 	rawYaml := getBytes("json_yaml/0703.yaml")
 
 	p := NewJsonParser(s.rawJson, []byte(rawYaml))
@@ -391,7 +393,7 @@ func RefineAttr(raw ...interface{}) interface{} {
 	return v
 }
 
-func (s *JsonParsesSuite) Test_0704_locator_list2() {
+func (s *JsonParserSuite) Test_0704_locator_list2() {
 	rawYaml := getBytes("json_yaml/0704.yaml")
 
 	p := NewJsonParser(s.rawJson, []byte(rawYaml))
@@ -413,6 +415,74 @@ func (s *JsonParsesSuite) Test_0704_locator_list2() {
 					"attr": "Full-time|||{ \"salaryTextFormatted\": false }",
 				},
 				"title": "Python Developer",
+			},
+		},
+	}
+	s.Equal(want, p.ParsedData)
+}
+
+type Parser3 struct {
+	*JsonParser
+}
+
+func newParser3(rawData, ymlMap []byte) *Parser3 {
+	return &Parser3{
+		NewJsonParser(rawData, ymlMap),
+	}
+}
+
+func (p *Parser3) RefineTaxoAttrArr(raw ...interface{}) interface{} {
+	v := cast.ToString(raw[0])
+	arr := strings.Split(v, ATTR_SEP)
+	return arr
+}
+
+func (p *Parser3) RefineTaxoAttrMap(raw ...interface{}) interface{} {
+	v := cast.ToString(raw[0])
+	d := make(map[string]interface{})
+	json.Unmarshal([]byte(v), &d)
+	return d
+}
+
+func (s *JsonParserSuite) Test_0801_refineComplexSel() {
+	rawYaml := getBytes("json_yaml/0801.yaml")
+	p := newParser3(s.rawJson, []byte(rawYaml))
+	UpdateRefiners(p)
+	p.DoParse()
+
+	want := map[string]interface{}{
+		"jobs": []map[string]interface{}{
+			{
+				"rank": 0,
+				"taxo": map[string]interface{}{
+					"attr_arr": []string{
+						"Full-time",
+						"$120,000 a year",
+					},
+				},
+				"tier": map[string]interface{}{
+					"attr_map": map[string]interface{}{
+						"label": "/career/front-end-developer/salaries/Seattle--WA",
+						"snip":  "$120,000 a year",
+					},
+				},
+				"title": "Front-End Engineer – 2023 (US)",
+			},
+			{
+				"rank": 1,
+				"taxo": map[string]interface{}{
+					"attr_arr": []string{
+						"Part-time",
+						"$40 an hour",
+					},
+				},
+				"tier": map[string]interface{}{
+					"attr_map": map[string]interface{}{
+						"label": "/career/instructor/salaries",
+						"snip":  "$40 an hour",
+					},
+				},
+				"title": "Remote Python Prep Instructor (Part-Time)",
 			},
 		},
 	}

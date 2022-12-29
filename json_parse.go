@@ -10,11 +10,6 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-const (
-	layerWithRank = 1
-	layerOthers   = 2
-)
-
 type JsonParser struct {
 	Parser
 }
@@ -47,7 +42,7 @@ func (p *JsonParser) DoParse() {
 	for key, cfg := range p.Config.Data() {
 		switch cfgType := cfg.(type) {
 		case map[string]interface{}:
-			p.parseDom(key, cfgType, p.JRoot, p.ParsedData, layerWithRank)
+			p.parseDom(key, cfgType, p.JRoot, p.ParsedData, layerForRank)
 		default:
 			fmt.Println(xpretty.Redf("[NON-MAP] {%v:%v}, please move into a map instead", key, cfg))
 			continue
@@ -129,23 +124,23 @@ func (p *JsonParser) handle_map(
 		subData := make(map[string]interface{})
 		data[key] = subData
 		p.parse_dom_nodes(cfg, dom, subData)
-		if layer == layerWithRank {
+		if layer == layerForRank {
 			p.FocusedStub = dom
 		}
 
 	case []gjson.Result:
 		var allSubData []map[string]interface{}
 		for _, gs := range dom {
-			subData := make(map[string]interface{})
-			allSubData = append(allSubData, subData)
-
-			if layer == layerWithRank {
+			if layer == layerForRank {
 				p.FocusedStub = gs
 			}
 
+			subData := make(map[string]interface{})
+			allSubData = append(allSubData, subData)
+
 			p.parse_dom_nodes(cfg, gs, subData)
 			// only calculate rank at first layer
-			if layer == layerWithRank {
+			if layer == layerForRank {
 				p.rank++
 			}
 		}
@@ -181,13 +176,7 @@ func (p *JsonParser) getAllElems(key string, cfg map[string]interface{}, result 
 		backup := result
 
 		for _, v := range sel {
-			ar1 := strings.Split(v.(string), ".")
-
-			if ar1[0] == PREFIX_LOCATOR_STUB {
-				v = strings.Join(ar1[1:], ".")
-				backup = p.FocusedStub.(gjson.Result)
-			}
-
+			v, backup = p.handleStub(v, backup)
 			result = backup.Get(v.(string))
 			res := p.getOneSelector(key, v, cfg, result).(gjson.Result)
 			arr = append(arr, res)
@@ -198,6 +187,7 @@ func (p *JsonParser) getAllElems(key string, cfg map[string]interface{}, result 
 		dat := make(map[string]gjson.Result)
 		backup := result
 		for k, v := range sel {
+			v, backup = p.handleStub(v, backup)
 			result = backup.Get(v.(string))
 			res := p.getOneSelector(key, v, cfg, result).(gjson.Result)
 			dat[k] = res
@@ -209,6 +199,17 @@ func (p *JsonParser) getAllElems(key string, cfg map[string]interface{}, result 
 	}
 
 	return iface, isComplexSel
+}
+
+// implementation.
+func (p *JsonParser) handleStub(raw interface{}, result gjson.Result) (interface{}, gjson.Result) {
+	ar1 := strings.Split(raw.(string), ".")
+	if ar1[0] == PREFIX_LOCATOR_STUB {
+		raw = strings.Join(ar1[1:], ".")
+		result = p.FocusedStub.(gjson.Result)
+	}
+
+	return raw, result
 }
 
 func (p *JsonParser) getOneSelector(key string, sel interface{}, cfg map[string]interface{}, result gjson.Result) (iface interface{}) {
@@ -249,7 +250,7 @@ func (p *JsonParser) parse_dom_nodes(
 		if strings.HasPrefix(k, "_") {
 			continue
 		}
-		p.parseDom(k, sc, result, data, layerOthers)
+		p.parseDom(k, sc, result, data, layerForOthers)
 	}
 }
 

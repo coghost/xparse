@@ -354,11 +354,67 @@ func (p *Parser) getAllElems(key string, cfg map[string]interface{}, selection *
 		return selection, isComplexSel
 	}
 
+	isComplexSel = true
+
+	switch sel := sel.(type) {
+	case string:
+		if !strings.Contains(sel, ",") {
+			iface, isComplexSel = p.getOneSelector(key, sel, cfg, selection)
+		} else {
+			iface = p.getElemsOneByOne(key, strings.Split(sel, ","), cfg, selection)
+		}
+	case []interface{}:
+		var ss []string
+		for _, v := range sel {
+			ss = append(ss, v.(string))
+		}
+		iface = p.getElemsOneByOne(key, ss, cfg, selection)
+	case map[string]interface{}:
+		dat := make(map[string]*goquery.Selection)
+		backup := selection
+
+		for k, v := range sel {
+			v, backup = p.handleStub(v, backup)
+			res, _ := p.getOneSelector(key, v, cfg, backup)
+			dat[k] = res.(*goquery.Selection)
+		}
+		iface = dat
+	default:
+		panic(fmt.Sprintf("unsupported key (%T: %s)", sel, sel))
+	}
+
+	return
+}
+
+func (p *Parser) handleStub(raw interface{}, result *goquery.Selection) (interface{}, *goquery.Selection) {
+	ar1 := strings.Split(raw.(string), ".")
+	if ar1[0] == PREFIX_LOCATOR_STUB {
+		raw = strings.Join(ar1[1:], ".")
+		result = p.FocusedStub.(*goquery.Selection)
+	}
+	return raw, result
+}
+
+func (p *Parser) getElemsOneByOne(key string, selArr []string, cfg map[string]interface{}, selection *goquery.Selection) (iface []*goquery.Selection) {
+	// selArr := strings.Split(sel, ",")
+	var resArr []*goquery.Selection
+	backup := selection
+
+	for _, v := range selArr {
+		v1, backup := p.handleStub(v, backup)
+		v = v1.(string)
+		elem, _ := p.getOneSelector(key, v, cfg, backup)
+		resArr = append(resArr, elem.(*goquery.Selection))
+	}
+	return resArr
+}
+
+func (p *Parser) getOneSelector(key string, sel interface{}, cfg map[string]interface{}, selection *goquery.Selection) (iface interface{}, isComplexSel bool) {
 	elems := selection.Find(sel.(string))
 	index, existed := cfg[INDEX]
 	isComplexSel = strings.Contains(sel.(string), ",")
 
-	iface = p.handleNullIndex(index, existed, isComplexSel, elems)
+	iface = p.handleNullIndex(sel, index, existed, elems)
 	if iface != nil {
 		return
 	}
@@ -384,12 +440,13 @@ func (p *Parser) getAllElems(key string, cfg map[string]interface{}, selection *
 	return
 }
 
-func (p *Parser) handleNullIndex(index interface{}, existed bool, isComplexSel bool, elems *goquery.Selection) interface{} {
+func (p *Parser) handleNullIndex(sel, index interface{}, existed bool, elems *goquery.Selection) interface{} {
 	// index has 4 types:
 	//  1. without index
 	//  2. index: ~ (index is null)
 	//  3. index: 0
 	//  4. index: [0, 1, ...]
+	isComplexSel := strings.Contains(sel.(string), ",")
 
 	// if index existed, just return nil
 	if index != nil {
@@ -443,6 +500,11 @@ func (p *Parser) getNodesAttrs(
 		} else {
 			data[key] = p.getSelectionSliceAttr(key, cfg, dom)
 		}
+	case map[string]*goquery.Selection:
+		if !complexSel {
+			panic("not supported")
+		}
+		data[key] = p.getSelectionMapAttr(key, cfg, dom)
 	default:
 		panic(xpretty.Redf("unknown type of dom %s:%v %v", key, cfg, dom))
 	}
@@ -455,6 +517,18 @@ func (p *Parser) getSelectionSliceAttr(key string, cfg map[string]interface{}, r
 		resArr = append(resArr, raw.(string))
 	}
 	v := p.refineAttr(key, strings.Join(resArr, ATTR_SEP), cfg, resultArr)
+	return p.convertToType(v, cfg)
+}
+
+func (p *Parser) getSelectionMapAttr(key string, cfg map[string]interface{}, results map[string]*goquery.Selection) interface{} {
+	dat := make(map[string]string)
+
+	for k, v := range results {
+		raw := p.getRawAttr(cfg, v)
+		dat[k] = raw.(string)
+	}
+	str, _ := Stringify(dat)
+	v := p.refineAttr(key, str, cfg, results)
 	return p.convertToType(v, cfg)
 }
 

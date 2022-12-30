@@ -11,5 +11,39 @@ jobs:
   rank:
     _attr_refine: bind_rank
   comp_info:
-    _locator: span.ratingNumber,span.companyName>a
+    _locator: span.estimated-salary,span.ratingNumber,span.companyName>a,span[id^="jobTitle"],div.companyLocation
     _attr_refine: true
+  comp_info_arr:
+    _locator:
+      - span.estimated-salary
+      - span.ratingNumber
+      - span.companyName>a
+      - span[id^="jobTitle"]
+      - div.companyLocation
+    _attr_refine: true
+  comp_info_map:
+    _locator:
+      salary: span.estimated-salary
+      rating: span.ratingNumber
+      name: span.companyName>a
+      title: span[id^="jobTitle"]
+      location: div.companyLocation
+    _attr_refine: _comp_info
+  restub_arr:
+    _locator: div.salaryOnly
+    comp_info:
+      _locator:
+        - span.estimated-salary
+        - ___.span.ratingNumber
+        - ___.span.companyName>a
+        - ___.span[id^="jobTitle"]
+        - ___.div.companyLocation
+  restub_map:
+    _locator: div.salaryOnly
+    comp_info:
+      _locator:
+        salary: span.estimated-salary
+        rating: ___.span.ratingNumber
+        name: ___.span.companyName>a
+        title: ___.span[id^="jobTitle"]
+        location: ___.div.companyLocation

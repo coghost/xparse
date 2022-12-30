@@ -104,8 +104,7 @@ func (s *HtmlParserSuite) Test_0103PanicsWithRefineMethod() {
 		return ""
 	}
 	ps.Refiners["_refine_ctitle1"] = _refine_ctitle1
-	s.PanicsWithValue(
-		"unexpected call to os.Exit(0) during test",
+	s.Panics(
 		func() {
 			ps.DoParse()
 		})
@@ -547,7 +546,13 @@ func (p *htmlParser2) RefineCompInfo(raw ...interface{}) interface{} {
 	v := cast.ToString(raw[0])
 	return v
 }
-func (s *HtmlParserSuite) Test_0701_multiSel() {
+
+func (p *htmlParser2) RefineCompInfoArr(raw ...interface{}) interface{} {
+	v := cast.ToString(raw[0])
+	return v
+}
+
+func (s *HtmlParserSuite) Test_0701_complexSel() {
 	rawHtml, rawYaml := getIndeedHtmlData("0701.yaml")
 	p := newHtmlParser2(rawHtml, rawYaml)
 	UpdateRefiners(p)

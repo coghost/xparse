@@ -7,12 +7,12 @@ require (
 	github.com/coghost/xpretty v0.0.0-20221010043412-c2eabe3e48d9
 	github.com/ghodss/yaml v1.0.0
 	github.com/gookit/config/v2 v2.1.6
-	github.com/gookit/goutil v0.5.13
+	github.com/gookit/goutil v0.5.15
 	github.com/iancoleman/strcase v0.2.0
-	github.com/k0kubun/pp/v3 v3.1.0
+	github.com/k0kubun/pp/v3 v3.2.0
 	github.com/shomali11/util v0.0.0-20220717175126-f0771b70947f
 	github.com/spf13/cast v1.5.0
-	github.com/stretchr/testify v1.8.0
+	github.com/stretchr/testify v1.8.1
 	github.com/thoas/go-funk v0.9.2
 	github.com/tidwall/gjson v1.14.3
 )
@@ -34,7 +34,7 @@ require (
 	github.com/tidwall/pretty v1.2.0 // indirect
 	golang.org/x/net v0.0.0-20220812174116-3211cb980234 // indirect
 	golang.org/x/sys v0.0.0-20220829200755-d48e67d00261 // indirect
-	golang.org/x/text v0.3.7 // indirect
+	golang.org/x/text v0.3.8 // indirect
 	golang.org/x/xerrors v0.0.0-20220609144429-65e65417b02f // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect

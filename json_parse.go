@@ -34,7 +34,7 @@ func (p *JsonParser) Spawn(raw, ymlCfg []byte) {
 
 func (p *JsonParser) LoadRootSelection(raw []byte) {
 	p.RawData = string(raw)
-	p.JRoot = gjson.Parse(string(raw))
+	p.Root = gjson.Parse(string(raw))
 }
 
 func (p *JsonParser) DoParse() {
@@ -42,7 +42,7 @@ func (p *JsonParser) DoParse() {
 	for key, cfg := range p.Config.Data() {
 		switch cfgType := cfg.(type) {
 		case map[string]interface{}:
-			p.parseDom(key, cfgType, p.JRoot, p.ParsedData, layerForRank)
+			p.parseDom(key, cfgType, p.Root.(gjson.Result), p.ParsedData, layerForRank)
 		default:
 			fmt.Println(xpretty.Redf("[NON-MAP] {%v:%v}, please move into a map instead", key, cfg))
 			continue

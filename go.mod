@@ -9,8 +9,6 @@ require (
 	github.com/gookit/config/v2 v2.1.6
 	github.com/gookit/goutil v0.5.15
 	github.com/iancoleman/strcase v0.2.0
-	github.com/k0kubun/pp/v3 v3.2.0
-	github.com/shomali11/util v0.0.0-20220717175126-f0771b70947f
 	github.com/spf13/cast v1.5.0
 	github.com/stretchr/testify v1.8.1
 	github.com/thoas/go-funk v0.9.2

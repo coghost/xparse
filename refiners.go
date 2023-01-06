@@ -104,3 +104,25 @@ func (p *Parser) TrimByFields(raw ...interface{}) interface{} {
 func (p *Parser) Trim(raw ...interface{}) interface{} {
 	return p.TrimByFields(raw...)
 }
+
+// GetStrBySplit
+// split str to slice and then return element at index
+//
+//   - if sep not in raw, returns raw
+//   - if index < 0, reset index to len() + index
+//   - if index > total length, returns the last one
+//   - else returns element at index
+func (p *Parser) GetStrBySplit(raw, sep string, index int) string {
+	if !strings.Contains(raw, sep) {
+		return raw
+	}
+
+	arr := strings.Split(raw, sep)
+	if index > len(arr)-1 {
+		index = len(arr) - 1
+	} else if index < 0 {
+		index = len(arr) + index
+	}
+
+	return arr[index]
+}

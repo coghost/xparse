@@ -47,6 +47,10 @@ type Parser struct {
 
 	// testKeys, only keys in testKeys will be parsed
 	testKeys []string
+
+	// verify keys, keys will be verified
+	verifyKeys []string
+
 	//
 	forceParsedKey bool
 	nestedKeys     []string
@@ -100,6 +104,11 @@ func (p *Parser) LoadRootSelection(raw []byte) {
 func (p *Parser) LoadConfig(ymlCfg []byte) {
 	p.Config = Yaml2Config(ymlCfg)
 	p.testKeys = p.Config.Strings("__raw.test_keys")
+	p.verifyKeys = p.Config.Strings("__raw.verify_keys")
+}
+
+func (p *Parser) GetVerifyKeys() (arr []string) {
+	return p.verifyKeys
 }
 
 func (p *Parser) GetRawInfo() map[string]interface{} {

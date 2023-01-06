@@ -1,11 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"path/filepath"
 
 	"github.com/coghost/xparse"
 	"github.com/gookit/goutil/fsutil"
-	"github.com/k0kubun/pp/v3"
 )
 
 type XkcdParser struct {
@@ -14,12 +14,12 @@ type XkcdParser struct {
 
 func NewXkcdParser(html, yml []byte) *XkcdParser {
 	return &XkcdParser{
-		xparse.NewParser(html, yml),
+		xparse.NewHtmlParser(html, yml),
 	}
 }
 
 func (p *XkcdParser) _refine_alt_alt(raw ...interface{}) interface{} {
-	pp.Println(raw[0])
+	fmt.Println(raw[0])
 	return raw[0]
 }
 
@@ -32,5 +32,5 @@ func main() {
 	xp.Refiners["_refine_alt_alt"] = xp._refine_alt_alt
 	xp.DoParse()
 
-	pp.Println(xp.ParsedData)
+	fmt.Println(xp.ParsedData)
 }

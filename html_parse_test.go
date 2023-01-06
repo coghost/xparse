@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/coghost/xpretty"
-	"github.com/k0kubun/pp/v3"
 	"github.com/spf13/cast"
 
 	"github.com/gookit/config/v2"
@@ -557,5 +556,34 @@ func (s *HtmlParserSuite) Test_0701_complexSel() {
 	p := newHtmlParser2(rawHtml, rawYaml)
 	UpdateRefiners(p)
 	p.DoParse()
-	pp.Println(p.ParsedData)
+	want := map[string]interface{}{
+		"jobs": []map[string]interface{}{
+			{
+				"rank":          0,
+				"comp_info":     "Estimated $102K - $129K a year|||2.0|||Zelis|||Python Software Engineer|||Remote",
+				"comp_info_arr": "Estimated $102K - $129K a year|||2.0|||Zelis|||Python Software Engineer|||Remote",
+				"comp_info_map": "{\"location\":\"Remote\",\"name\":\"Zelis\",\"rating\":\"2.0\",\"salary\":\"Estimated $102K - $129K a year\",\"title\":\"Python Software Engineer\"}",
+				"restub_arr": map[string]interface{}{
+					"comp_info": "Estimated $102K - $129K a year|||2.0|||Zelis|||Python Software Engineer|||Remote",
+				},
+				"restub_map": map[string]interface{}{
+					"comp_info": "{\"location\":\"Remote\",\"name\":\"Zelis\",\"rating\":\"2.0\",\"salary\":\"Estimated $102K - $129K a year\",\"title\":\"Python Software Engineer\"}",
+				},
+			},
+			{
+				"rank":          1,
+				"comp_info":     "|||3.4|||CrowdStrike|||Data Scientist, Malware Detections Team (Remote)|||+1 locationRemote",
+				"comp_info_arr": "|||3.4|||CrowdStrike|||Data Scientist, Malware Detections Team (Remote)|||+1 locationRemote",
+				"comp_info_map": "{\"location\":\"+1 locationRemote\",\"name\":\"CrowdStrike\",\"rating\":\"3.4\",\"salary\":\"\",\"title\":\"Data Scientist, Malware Detections Team (Remote)\"}",
+				"restub_arr": map[string]interface{}{
+					"comp_info": "|||3.4|||CrowdStrike|||Data Scientist, Malware Detections Team (Remote)|||+1 locationRemote",
+				},
+				"restub_map": map[string]interface{}{
+					"comp_info": "{\"location\":\"+1 locationRemote\",\"name\":\"CrowdStrike\",\"rating\":\"3.4\",\"salary\":\"\",\"title\":\"Data Scientist, Malware Detections Team (Remote)\"}",
+				},
+			},
+		},
+	}
+
+	s.Equal(want, p.ParsedData)
 }

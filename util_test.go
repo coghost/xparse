@@ -1,11 +1,11 @@
 package xparse_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/coghost/xparse"
 
-	"github.com/k0kubun/pp/v3"
 	"github.com/shomali11/util/xconversions"
 	"github.com/stretchr/testify/suite"
 )
@@ -43,11 +43,10 @@ func (s *UtilSuite) Test01_GetKeys() {
 	dat := make(map[string]interface{})
 	xconversions.Structify(s.rawJson, &dat)
 	// keys := xparse.GetKeys(dat["friends"], "friends")
-	// pp.Println(keys)
 
 	all := []string{}
 	xparse.GetMapKeys(&all, dat)
-	pp.Println(all)
+	fmt.Println(all)
 	// xparse.PrintAllKeys(dat)
 }
 

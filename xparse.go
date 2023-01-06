@@ -10,21 +10,23 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/gookit/config/v2"
 	"github.com/iancoleman/strcase"
-	"github.com/shomali11/util/xconversions"
 	"github.com/spf13/cast"
 	"github.com/thoas/go-funk"
 )
 
 const (
-	nonMapHint = "[NON-MAP] {%v:%v}, please move into a map instead"
+	_nonMapHint = "[NON-MAP] {%v:%v}, please move into a map instead"
 )
 
 const (
-	layerForRank = iota + 1
-	layerForOthers
+	_layerForRank = iota + 1
+	_layerForOthers
 )
 
 type Parser struct {
+	SourceData []byte
+	SourceYaml []byte
+
 	Config *config.Config
 	Root   interface{}
 
@@ -64,9 +66,13 @@ type Parser struct {
 	AttrToBeRefined []string
 }
 
-func (p *Parser) Spawn(raw, ymlCfg []byte) {
-	p.LoadConfig(ymlCfg)
-	p.LoadRootSelection(raw)
+func NewParser(raw []byte, ymlMap ...[]byte) *Parser {
+	return &Parser{
+		SourceData: raw,
+		Config:     &config.Config{},
+		ParsedData: make(map[string]interface{}),
+		Refiners:   make(map[string]func(args ...interface{}) interface{}),
+	}
 }
 
 func (p *Parser) ToggleDevMode(b bool) {
@@ -79,8 +85,8 @@ func (p *Parser) Debug(key interface{}, raw ...interface{}) {
 	}
 }
 
-func (p *Parser) LoadConfig(ymlCfg []byte) {
-	p.Config = Yaml2Config(ymlCfg)
+func (p *Parser) LoadConfig(ymlCfg ...[]byte) {
+	p.Config = Yaml2Config(ymlCfg...)
 	p.testKeys = p.Config.Strings("__raw.test_keys")
 	p.verifyKeys = p.Config.Strings("__raw.verify_keys")
 }
@@ -89,8 +95,14 @@ func (p *Parser) GetVerifyKeys() (arr []string) {
 	return p.verifyKeys
 }
 
-func (p *Parser) GetRawInfo() map[string]interface{} {
-	raw := p.Config.Data()["__raw"]
+// GetRawInfo
+//
+// get raw info's value in config file
+//   - if args is empty, will return __raw's value
+//   - else return the first args's value
+func (p *Parser) GetRawInfo(args ...string) map[string]interface{} {
+	key := FirstOrDefaultArgs("__raw", args...)
+	raw := p.Config.Data()[key]
 	return raw.(map[string]interface{})
 }
 
@@ -102,11 +114,12 @@ func (p *Parser) PrettifyJsonData(args ...interface{}) {
 	xpretty.PrettyJson(p.MustDataAsJson(args...))
 }
 
+// DataAsJson returns a string of args[0] or p.ParsedData and error
 func (p *Parser) DataAsJson(args ...interface{}) (string, error) {
 	if len(args) != 0 {
-		return xconversions.Stringify(args[0])
+		return Stringify(args[0])
 	} else {
-		return xconversions.Stringify(p.ParsedData)
+		return Stringify(p.ParsedData)
 	}
 }
 
@@ -137,7 +150,7 @@ func (p *Parser) Scan() {
 		case map[string]interface{}:
 			p.parseAttrs("", key, cfgType)
 		default:
-			fmt.Println(xpretty.Redf(nonMapHint, key, cfg))
+			fmt.Println(xpretty.Redf(_nonMapHint, key, cfg))
 			continue
 		}
 	}
@@ -172,11 +185,9 @@ func (p *Parser) parseAttrs(parentKey, key string, config interface{}) {
 	}
 }
 
-func (p *Parser) runCheck() {
-}
+func (p *Parser) runCheck() {}
 
-// func (p *Parser) DoParse() {
-// }
+func (p *Parser) DoParse() {}
 
 func (p *Parser) popNestedKeys() {
 	if len(p.nestedKeys) == 0 {
@@ -204,7 +215,7 @@ func (p *Parser) checkNestedKeys(key string) bool {
 	return false
 }
 
-func (p *Parser) requiredKey(key string) (b bool) {
+func (p *Parser) isRequiredKey(key string) (b bool) {
 	if strings.HasPrefix(key, "__") {
 		return
 	}

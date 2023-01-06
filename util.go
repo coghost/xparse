@@ -23,10 +23,10 @@ func PanicIfErr(err error) {
 	}
 }
 
-func Yaml2Config(raw []byte) (cf *config.Config) {
+func Yaml2Config(raw ...[]byte) (cf *config.Config) {
 	cf = config.New("")
 	cf.AddDriver(yamlv3.Driver)
-	err := cf.LoadSources(config.Yaml, raw)
+	err := cf.LoadSources(config.Yaml, raw[0], raw[1:]...)
 	PanicIfErr(err)
 	return cf
 }
@@ -200,4 +200,9 @@ func Stringify(data interface{}) (string, error) {
 		return "", err
 	}
 	return string(b), nil
+}
+
+// Structify returns the original representation
+func Structify(data string, value interface{}) error {
+	return json.Unmarshal([]byte(data), value)
 }

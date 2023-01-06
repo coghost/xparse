@@ -14,7 +14,7 @@ import (
 )
 
 type xkcdParser struct {
-	*Parser
+	*HtmlParser
 }
 
 func newXkcdParser(rawHtml, ymlMap []byte) *xkcdParser {
@@ -435,7 +435,7 @@ func (s *HtmlParserSuite) Test_0500_type() {
 }
 
 type htmlParser1 struct {
-	*Parser
+	*HtmlParser
 }
 
 func newHtmlParser1(rawHtml, ymlMap []byte) *htmlParser1 {
@@ -532,7 +532,7 @@ func (s *HtmlParserSuite) Test_0602_attrRefineAuto() {
 }
 
 type htmlParser2 struct {
-	*Parser
+	*HtmlParser
 }
 
 func newHtmlParser2(rawHtml, ymlMap []byte) *htmlParser2 {

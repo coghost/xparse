@@ -1,0 +1,12 @@
+__raw:
+  site_url: https://www.jobisjob.ch/
+  country: CH
+  language:
+    - en
+  site: 895
+  test_keys:
+    - jobs.*
+  verify_keys:
+    - salary_range
+    - listing_date
+    - external_id

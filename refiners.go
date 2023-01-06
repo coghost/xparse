@@ -7,18 +7,21 @@ import (
 
 	"github.com/coghost/xpretty"
 	"github.com/iancoleman/strcase"
-	"github.com/spf13/cast"
 	"github.com/thoas/go-funk"
 )
 
-func prompt(any interface{}, mtd_name, MtdName string) {
-	tp := fmt.Sprintf("%T", any)
-	arr := strings.Split(tp, ".")
-	tp = arr[len(arr)-1]
+const (
+	hint0 = ``
+	hint1 = `
 
-	fmt.Println(xpretty.Redf(`Cannot find Refiner: (%s or %s)`, mtd_name, MtdName))
-	fmt.Println(xpretty.Redf(`Please add following method:`))
-	fmt.Println(xpretty.Greenf(`
+func (p *%[3]s) %[1]s(raw ...interface{}) interface{} {
+	// TODO: raw[0] is the interface of string value parsed
+	// TODO: raw[1] is *config.Config
+	// TODO: raw[2] is *goquery.Selection/gjson.Result
+	return p.GetStrBySplit(raw[0], "", -1)
+}
+`
+	hint2 = `
 
 func (p *%[3]s) %[1]s(raw ...interface{}) interface{} {
 	v := cast.ToString(raw[0])
@@ -26,9 +29,9 @@ func (p *%[3]s) %[1]s(raw ...interface{}) interface{} {
 	// TODO: raw[2] is *goquery.Selection/gjson.Result
 	return v
 }
-`, MtdName, mtd_name, tp, strings.Repeat("-", 32)))
+	`
 
-	fmt.Println(xpretty.Yellowf(`
+	hintFn = `
 %[4]s
 WARN: WHY GOT THIS PROMPT?
 Maybe you've missed one of following methods:
@@ -39,90 +42,79 @@ Maybe you've missed one of following methods:
   + p.Refiners["%[1]s"] = p.%[1]s
   + every new refiner is required
 %[4]s
-`, MtdName, mtd_name, tp, strings.Repeat("-", 32)))
+`
+)
+
+type RefOpts struct {
+	methods  []string
+	hintType int
+}
+
+type RefOptFunc func(o *RefOpts)
+
+func bindRefOpts(opt *RefOpts, opts ...RefOptFunc) {
+	for _, f := range opts {
+		f(opt)
+	}
+}
+
+func WithMethods(marr []string) RefOptFunc {
+	return func(o *RefOpts) {
+		o.methods = append(o.methods, marr...)
+	}
+}
+
+func WithHintType(i int) RefOptFunc {
+	return func(o *RefOpts) {
+		o.hintType = i
+	}
+}
+
+func prompt(any interface{}, mtd_name, MtdName string, opts ...RefOptFunc) {
+	opt := RefOpts{}
+	bindRefOpts(&opt, opts...)
+
+	tp := fmt.Sprintf("%T", any)
+	arr := strings.Split(tp, ".")
+	tp = arr[len(arr)-1]
+
+	hint := hint1
+	switch opt.hintType {
+	case 2:
+		hint = hint2
+	default:
+		hint = hint1
+	}
+
+	fmt.Println(xpretty.Redf(`Cannot find Refiner: (%s or %s)`, mtd_name, MtdName))
+	fmt.Println(xpretty.Redf(`Please add following method:`))
+	fmt.Println(xpretty.Greenf(hint, MtdName, mtd_name, tp, strings.Repeat("-", 32)))
+	fmt.Println(xpretty.Yellowf(hintFn, MtdName, mtd_name, tp, strings.Repeat("-", 32)))
+
 	os.Exit(0)
 }
 
-func UpdateRefiners(p interface{}, methodNames ...string) {
+func UpdateRefiners(p interface{}, opts ...RefOptFunc) {
+	opt := RefOpts{}
+	bindRefOpts(&opt, opts...)
+
 	Invoke(p, "Scan")
 
 	attrs := GetField(p, "AttrToBeRefined").Interface().([]string)
-	attrs = append(attrs, methodNames...)
+	attrs = append(attrs, opt.methods...)
 
-	bindRefiners(p, attrs...)
+	bindRefiners(p, attrs, opts...)
 }
 
-func bindRefiners(p interface{}, attrs ...string) {
+func bindRefiners(p interface{}, attrs []string, opts ...RefOptFunc) {
 	refiners := GetField(p, "Refiners").Interface().(map[string]func(raw ...interface{}) interface{})
 
 	for _, mtd_name := range attrs {
 		MtdName := strcase.ToCamel(mtd_name)
 		method := GetMethod(p, MtdName)
 		if funk.IsEmpty(method) {
-			prompt(p, mtd_name, MtdName)
+			prompt(p, mtd_name, MtdName, opts...)
 		}
 		refiners[MtdName] = method.Interface().(func(raw ...interface{}) interface{})
 	}
-}
-
-// Mock
-//
-//   - raw[0]: the parsed text
-//   - raw[1]: *config.Config
-//   - raw[2]: *goquery.Selection / gjson.Result
-func (p *Parser) Mock(raw ...interface{}) interface{} {
-	return raw[0]
-}
-
-func (p *Parser) RefineUrl(raw ...interface{}) interface{} {
-	return p.EnrichUrl(raw...)
-}
-
-func (p *Parser) EnrichUrl(raw ...interface{}) interface{} {
-	domain := p.Config.String("__raw.site_url")
-	uri := EnrichUrl(raw[0], domain)
-	return uri
-}
-
-func (p *Parser) ToFloat(raw ...interface{}) interface{} {
-	return ToFixed(cast.ToFloat64(raw), 2)
-}
-
-func (p *Parser) BindRank(raw ...interface{}) interface{} {
-	return p.rank
-}
-
-// TrimByFields removes all "\r\n\t" and keep one space at most
-//
-//   - 1. strings.TrimSpace
-//   - 2. strings.Join(strings.Fields(s), " ")
-func (p *Parser) TrimByFields(raw ...interface{}) interface{} {
-	s := strings.TrimSpace(raw[0].(string))
-	return strings.Join(strings.Fields(s), " ")
-}
-
-func (p *Parser) Trim(raw ...interface{}) interface{} {
-	return p.TrimByFields(raw...)
-}
-
-// GetStrBySplit
-// split str to slice and then return element at index
-//
-//   - if sep not in raw, returns raw
-//   - if index < 0, reset index to len() + index
-//   - if index > total length, returns the last one
-//   - else returns element at index
-func (p *Parser) GetStrBySplit(raw, sep string, index int) string {
-	if !strings.Contains(raw, sep) {
-		return raw
-	}
-
-	arr := strings.Split(raw, sep)
-	if index > len(arr)-1 {
-		index = len(arr) - 1
-	} else if index < 0 {
-		index = len(arr) + index
-	}
-
-	return arr[index]
 }

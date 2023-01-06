@@ -1,12 +1,9 @@
-package xparse_test
+package xparse
 
 import (
 	"fmt"
 	"testing"
 
-	"github.com/coghost/xparse"
-
-	"github.com/shomali11/util/xconversions"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -41,25 +38,49 @@ func (s *UtilSuite) TearDownSuite() {
 
 func (s *UtilSuite) Test01_GetKeys() {
 	dat := make(map[string]interface{})
-	xconversions.Structify(s.rawJson, &dat)
-	// keys := xparse.GetKeys(dat["friends"], "friends")
+	Structify(s.rawJson, &dat)
+	// keys := GetKeys(dat["friends"], "friends")
 
 	all := []string{}
-	xparse.GetMapKeys(&all, dat)
+	GetMapKeys(&all, dat)
 	fmt.Println(all)
-	// xparse.PrintAllKeys(dat)
+	// PrintAllKeys(dat)
 }
 
 func (s *UtilSuite) Test02_CutStr() {
 	raw := "a,b,c,d,e"
-	v, b := xparse.GetStrBySplit(raw, ",", 6)
+	v, b := GetStrBySplit(raw, ",", 6)
 	s.Equal("e", v)
 	s.Equal(true, b)
 
-	v, b = xparse.GetStrBySplit(raw, ",", -1)
+	v, b = GetStrBySplit(raw, ",", -1)
 	s.Equal("e", v)
 	s.Equal(true, b)
 }
 
-func (s *UtilSuite) Test03() {
+func (s *UtilSuite) Test03_load() {
+	r0 := getBytes("html_yaml/0000.yaml")
+	r1 := getBytes("html_yaml/0001.yaml")
+	cf := Yaml2Config(r1, r0)
+
+	want := map[string]interface{}{
+		"__raw": map[string]interface{}{
+			"country": "CH",
+			"language": []interface{}{
+				"en",
+			},
+			"site":     895,
+			"site_url": "https://www.jobisjob.ch/",
+			"test_keys": []interface{}{
+				"jobs.*",
+			},
+			"verify_keys": []interface{}{
+				"salary_range",
+				"listing_date",
+				"external_id",
+			},
+		},
+	}
+
+	s.Equal(want, cf.Data())
 }

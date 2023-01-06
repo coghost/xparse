@@ -5,30 +5,25 @@ import (
 	"strings"
 
 	"github.com/coghost/xpretty"
-	"github.com/gookit/config/v2"
 	"github.com/thoas/go-funk"
 	"github.com/tidwall/gjson"
 )
 
 type JsonParser struct {
-	Parser
+	*Parser
 }
 
-func NewJsonParser(rawData, ymlMap []byte) *JsonParser {
+func NewJsonParser(rawData []byte, ymlMap ...[]byte) *JsonParser {
 	p := &JsonParser{
-		Parser{
-			Config:     &config.Config{},
-			ParsedData: make(map[string]interface{}),
-			Refiners:   make(map[string]func(args ...interface{}) interface{}),
-		},
+		NewParser(rawData, ymlMap...),
 	}
 
-	p.Spawn(rawData, ymlMap)
+	p.Spawn(rawData, ymlMap...)
 	return p
 }
 
-func (p *JsonParser) Spawn(raw, ymlCfg []byte) {
-	p.LoadConfig(ymlCfg)
+func (p *JsonParser) Spawn(raw []byte, ymlCfg ...[]byte) {
+	p.LoadConfig(ymlCfg...)
 	p.LoadRootSelection(raw)
 }
 
@@ -42,7 +37,7 @@ func (p *JsonParser) DoParse() {
 	for key, cfg := range p.Config.Data() {
 		switch cfgType := cfg.(type) {
 		case map[string]interface{}:
-			p.parseDom(key, cfgType, p.Root.(gjson.Result), p.ParsedData, layerForRank)
+			p.parseDom(key, cfgType, p.Root.(gjson.Result), p.ParsedData, _layerForRank)
 		default:
 			fmt.Println(xpretty.Redf("[NON-MAP] {%v:%v}, please move into a map instead", key, cfg))
 			continue
@@ -54,7 +49,7 @@ func (p *JsonParser) parseDom(key string, cfg interface{}, result gjson.Result, 
 	p.checkNestedKeys(key)
 	defer p.popNestedKeys()
 
-	b := p.requiredKey(key)
+	b := p.isRequiredKey(key)
 	// xpretty.DummyLog(key, p.testKeys, b, p.forceParsedKey, p.nestedKeys)
 	if !b {
 		return
@@ -124,14 +119,14 @@ func (p *JsonParser) handle_map(
 		subData := make(map[string]interface{})
 		data[key] = subData
 		p.parse_dom_nodes(cfg, dom, subData)
-		if layer == layerForRank {
+		if layer == _layerForRank {
 			p.FocusedStub = dom
 		}
 
 	case []gjson.Result:
 		var allSubData []map[string]interface{}
 		for _, gs := range dom {
-			if layer == layerForRank {
+			if layer == _layerForRank {
 				p.FocusedStub = gs
 			}
 
@@ -140,7 +135,7 @@ func (p *JsonParser) handle_map(
 
 			p.parse_dom_nodes(cfg, gs, subData)
 			// only calculate rank at first layer
-			if layer == layerForRank {
+			if layer == _layerForRank {
 				p.rank++
 			}
 		}
@@ -249,7 +244,7 @@ func (p *JsonParser) parse_dom_nodes(
 		if strings.HasPrefix(k, "_") {
 			continue
 		}
-		p.parseDom(k, sc, result, data, layerForOthers)
+		p.parseDom(k, sc, result, data, _layerForOthers)
 	}
 }
 

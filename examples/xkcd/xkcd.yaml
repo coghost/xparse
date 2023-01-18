@@ -1,8 +1,7 @@
 __raw:
   site_url: https://xkcd.com/
   test_keys:
-    - bottom
-    - comic_l.*
+    - bottom.comic_links.*
 
 page:
   title: head>title

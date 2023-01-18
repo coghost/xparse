@@ -18,7 +18,8 @@ func (p *%[3]s) %[1]s(raw ...interface{}) interface{} {
 	// TODO: raw[0] is the interface of string value parsed
 	// TODO: raw[1] is *config.Config
 	// TODO: raw[2] is *goquery.Selection/gjson.Result
-	return p.GetStrBySplit(raw[0], "", -1)
+	txt := p.GetStrBySplitAtIndex(raw[0], "", -1)
+	return txt
 }
 `
 	hint2 = `
@@ -95,7 +96,7 @@ func prompt(any interface{}, mtd_name, MtdName string, opts ...RefOptFunc) {
 }
 
 func UpdateRefiners(p interface{}, opts ...RefOptFunc) {
-	opt := RefOpts{}
+	opt := RefOpts{hintType: 1}
 	bindRefOpts(&opt, opts...)
 
 	Invoke(p, "Scan")

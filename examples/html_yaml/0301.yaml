@@ -1,8 +1,9 @@
 __raw:
   site_url: https://xkcd.com/
   test_keys:
-    - bottom
-    - comic_l.*
+    - bottom.comic_links.*
+    - middle.ctitle
+    - middle.transcript
 
 bottom:
   _locator: div#bottom
@@ -13,3 +14,8 @@ bottom:
     href:
       _attr: href
       _attr_refine: enrich_url
+
+middle:
+  _locator: div#middleContainer
+  ctitle: div#ctitle
+  transcript: div#transcript

@@ -13,6 +13,7 @@ require (
 	github.com/stretchr/testify v1.8.1
 	github.com/thoas/go-funk v0.9.2
 	github.com/tidwall/gjson v1.14.3
+	golang.org/x/net v0.0.0-20220812174116-3211cb980234
 )
 
 require (
@@ -30,7 +31,6 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
-	golang.org/x/net v0.0.0-20220812174116-3211cb980234 // indirect
 	golang.org/x/sys v0.0.0-20220829200755-d48e67d00261 // indirect
 	golang.org/x/text v0.3.8 // indirect
 	golang.org/x/xerrors v0.0.0-20220609144429-65e65417b02f // indirect

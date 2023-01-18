@@ -40,6 +40,8 @@ const (
 	INDEX   = "_index"
 	LOCATOR = "_locator"
 
+	EXTRACTOR_PREV = "_extract_prev"
+
 	ATTR = "_attr"
 	// _attr_refine:
 	//  - bool(true): will automatically generate a method name
@@ -48,6 +50,10 @@ const (
 	//  - string(not started with _): will be it
 	ATTR_REFINE   = "_attr_refine"
 	PREFIX_REFINE = "_refine"
+
+	// attr joiner
+	JOINER    = "_joiner"
+	POST_JOIN = "_post_join"
 
 	// a simple refiner, will do strings.Strip
 	STRIP = "_strip"
@@ -85,4 +91,9 @@ const (
 	ATTR_TYPE_I = "i"
 )
 
-const ATTR_SEP = "|||"
+const (
+	ATTR_SEP    = "|||"
+	ATTR_JOINER = "__join_text"
+
+	REFINE_NAME_BY_KEY = "__key"
+)

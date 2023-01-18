@@ -1,0 +1,26 @@
+__raw:
+  site_url: https://xkcd.com/
+  test_keys:
+    - jobs.*
+  verify_keys:
+    - jobs.#.title
+
+jobs: &JOBS
+  rank:
+    _attr_refine: bind_rank
+  _index:
+    - 0
+    - 11
+  _locator: ul.jobsearch-ResultsList>li>div.result
+  title: h2.jobTitle>a
+  id:
+    _locator: h2.jobTitle>a
+    _attr: id
+  listing_date:
+    _locator: span.date-not-existed
+  company:
+    _locator: div.companyInfo
+    name: span.companyName
+
+pages:
+  <<: *JOBS

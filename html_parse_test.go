@@ -307,10 +307,15 @@ func (s *HtmlParserSuite) Test_0300InRealWorld() {
 	s.JSONEq(want, dat)
 }
 
+func refineAltAlt(raw ...interface{}) interface{} {
+	return raw[0]
+}
+
 func (s *HtmlParserSuite) Test_0301DevMode() {
-	rawYaml := getBytes("xkcd/xkcd.yaml")
+	rawYaml := getBytes("html_yaml/0301.yaml")
 	p := NewHtmlParser(s.rawHtml, rawYaml)
 	p.ToggleDevMode(true)
+	p.Refiners["RefineAltAlt"] = refineAltAlt
 	p.DoParse()
 
 	want := map[string]interface{}{
@@ -374,8 +379,13 @@ func (s *HtmlParserSuite) Test_0301DevMode() {
 				},
 			},
 		},
+		"middle": map[string]interface{}{
+			"ctitle":     "Python",
+			"transcript": "[[ Guy 1 is talking to Guy 2, who is floating in the sky ]]\nGuy 1: You're flying! How?\nGuy 2: Python!\nGuy 2: I learned it last night! Everything is so simple!\nGuy 2: Hello world is just 'print \"Hello, World!\" '\nGuy 1: I dunno... Dynamic typing? Whitespace?\nGuy 2: Come join us! Programming is fun again! It's a whole new world up here!\nGuy 1: But how are you flying?\nGuy 2: I just typed 'import antigravity'\nGuy 1: That's it?\nGuy 2: ...I also sampled everything in the medicine cabinet for comparison.\nGuy 2: But i think this is the python.\n{{ I wrote 20 short programs in Python yesterday.  It was wonderful.  Perl, I'm leaving you. }}",
+		},
 	}
 	s.Equal(want, p.ParsedData)
+
 }
 
 func getIndeedHtmlData(fname string) (b1, b2 []byte) {
@@ -586,4 +596,105 @@ func (s *HtmlParserSuite) Test_0701_complexSel() {
 	}
 
 	s.Equal(want, p.ParsedData)
+}
+
+func (s *HtmlParserSuite) Test_0800() {
+	rawHtml, rawYaml := getIndeedHtmlData("0800.yaml")
+	p := NewHtmlParser(rawHtml, rawYaml)
+	p.DoParse()
+
+	failed, all := Verify(p.MustDataAsJson(), p.GetVerifyKeys())
+
+	s.Empty(failed)
+	wantAll := map[string]map[int][]string{
+		"jobs": {
+			0: []string{
+				"Python Software Engineer",
+			},
+			1: []string{
+				"Data Scientist, Malware Detections Team (Remote)",
+			},
+		},
+	}
+	s.Equal(wantAll, all)
+}
+
+func (s *HtmlParserSuite) Test_0801() {
+	rawHtml, rawYaml := getIndeedHtmlData("0801.yaml")
+	p := NewHtmlParser(rawHtml, rawYaml)
+	p.DoParse()
+
+	failed, all := Verify(p.MustDataAsJson(), p.GetVerifyKeys())
+	// pp.Println(failed)
+	// pp.Println(all)
+
+	wantF := map[string][]string{
+		"jobs": {
+			"0:listing_date",
+			"1:listing_date",
+		},
+	}
+
+	wantAll := map[string]map[int][]string{
+		"jobs": {
+			0: []string{
+				"Python Software Engineer",
+				"",
+			},
+			1: []string{
+				"Data Scientist, Malware Detections Team (Remote)",
+				"",
+			},
+		},
+		"pages": {
+			0: []string{
+				"job_a619997ec53df4dc",
+			},
+			1: []string{
+				"job_8cd20f584d7164c7",
+			},
+		},
+	}
+
+	s.Equal(wantF, failed)
+	s.Equal(wantAll, all)
+}
+
+func (s *HtmlParserSuite) Test_0802() {
+	rawHtml, rawYaml := getIndeedHtmlData("0802.yaml")
+	p := NewHtmlParser(rawHtml, rawYaml)
+	p.DoParse()
+
+	failed, all := Verify(p.MustDataAsJson(), p.GetVerifyKeys())
+
+	wantF := map[string][]string{
+		"jobs": {
+			"0:listing_date",
+			"1:listing_date",
+		},
+	}
+	wantAll := map[string]map[int][]string{
+		"jobs": {
+			0: []string{
+				"Python Software Engineer",
+				"job_a619997ec53df4dc",
+				"",
+			},
+			1: []string{
+				"Data Scientist, Malware Detections Team (Remote)",
+				"job_8cd20f584d7164c7",
+				"",
+			},
+		},
+		"pages": {
+			0: []string{
+				"Python Software Engineer",
+			},
+			1: []string{
+				"Data Scientist, Malware Detections Team (Remote)",
+			},
+		},
+	}
+	s.Equal(wantF, failed)
+	s.Equal(wantAll, all)
 }

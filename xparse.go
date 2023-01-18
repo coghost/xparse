@@ -37,20 +37,22 @@ type Parser struct {
 
 	// devMode
 	devMode bool
-	rank    int
+
+	rank       int
+	rankOffset int
+	// whether use the real order of page or not (which is same as _index:)
+	rankAsIndex bool
 
 	// map to config
 	ParsedData map[string]interface{}
 
-	// testKeys, only keys in testKeys will be parsed
+	// testKeys, only keys in testKeys will be parsed, and .rank is parsed by default
 	testKeys []string
 
 	// verify keys, keys will be verified
 	verifyKeys []string
 
-	//
-	forceParsedKey bool
-	nestedKeys     []string
+	nestedKeys []string
 
 	// selectedKeys []string
 
@@ -72,6 +74,8 @@ func NewParser(raw []byte, ymlMap ...[]byte) *Parser {
 		Config:     &config.Config{},
 		ParsedData: make(map[string]interface{}),
 		Refiners:   make(map[string]func(args ...interface{}) interface{}),
+
+		rankAsIndex: false,
 	}
 }
 
@@ -160,9 +164,9 @@ func (p *Parser) parseAttrs(parentKey, key string, config interface{}) {
 	switch cfg := config.(type) {
 	case map[string]interface{}:
 		if p.isLeaf(cfg) {
-			if _, b := cfg["_attr_refine"]; !b {
-				return
-			}
+			// if _, b := cfg[ATTR_REFINE]; !b {
+			// 	return
+			// }
 			attr := cfg[ATTR]
 			refine, b := cfg[ATTR_REFINE]
 			if !b {
@@ -200,18 +204,43 @@ func (p *Parser) checkNestedKeys(key string) bool {
 	if !strings.Contains(key, "__") {
 		p.nestedKeys = append(p.nestedKeys, key)
 	}
+	return true
+}
+
+func (p *Parser) check(key string) bool {
+	// len == 0, just return true
+	if len(p.nestedKeys) < 1 {
+		return true
+	}
+
+	nk := strings.Join(p.nestedKeys, ".")
+	// len == 1, check if startswith nk
+	if len(p.nestedKeys) == 1 {
+		for _, tk := range p.testKeys {
+			if strings.HasPrefix(tk, nk) {
+				return true
+			}
+		}
+		return false
+	}
+
+	// len p.nestedKeys > 1
 	for _, tk := range p.testKeys {
-		for _, nk := range p.nestedKeys {
+		b := strings.Contains(tk, ".*")
+		if b {
 			_tk := strings.ReplaceAll(tk, ".*", "")
-			b := strings.Contains(tk, ".*") && strings.Contains(nk, _tk)
-			if b {
-				p.forceParsedKey = b
-				// xpretty.DummyErrorLog(key, p.forceParsedKey)
+			if strings.HasPrefix(nk, _tk) {
+				return true
+			}
+		} else {
+			if strings.HasSuffix(nk, ".rank") {
+				return true
+			}
+			if nk == tk {
 				return true
 			}
 		}
 	}
-	p.forceParsedKey = false
 	return false
 }
 
@@ -224,7 +253,7 @@ func (p *Parser) isRequiredKey(key string) (b bool) {
 		return true
 	}
 
-	if p.forceParsedKey {
+	if p.check(key) {
 		return true
 	}
 
@@ -245,6 +274,33 @@ func (p *Parser) isLeaf(cfg map[string]interface{}) bool {
 	return true
 }
 
+func (p *Parser) ToggleRankType(b bool) {
+	p.rankAsIndex = b
+}
+
+func (p *Parser) setRank(cfg map[string]interface{}) {
+	if cfg[INDEX] == nil {
+		// when INDEX is nil, means use every items, so rank is same with offset
+		p.rank = p.rankOffset
+		p.rankOffset++
+		return
+	}
+
+	switch idx := cfg[INDEX].(type) {
+	case int:
+		p.rank = idx
+	case []interface{}:
+		if p.rankAsIndex {
+			p.rank = cast.ToInt(idx[p.rankOffset])
+		} else {
+			p.rank = p.rankOffset
+		}
+		p.rankOffset++
+	default:
+		panic(fmt.Sprintf("unsupported index for setRank %v", idx))
+	}
+}
+
 func (p *Parser) convertToType(raw interface{}, cfg map[string]interface{}) interface{} {
 	t, o := cfg[TYPE]
 	if o {
@@ -262,15 +318,25 @@ func (p *Parser) convertToType(raw interface{}, cfg map[string]interface{}) inte
 }
 
 func (p *Parser) TrimSpace(txt string, cfg map[string]interface{}) string {
-	if cfg[STRIP] == nil {
+	st := cfg[STRIP]
+	if st == nil || st == false {
 		return txt
 	}
 	return strings.TrimSpace(txt)
 }
 
 func (p *Parser) stripChars(key string, raw interface{}, cfg map[string]interface{}) interface{} {
+	switch v := raw.(type) {
+	case string:
+		return p.stripStrings(key, v, cfg)
+	default:
+		return v
+	}
+}
+
+func (p *Parser) stripStrings(key string, raw interface{}, cfg map[string]interface{}) interface{} {
 	st := cfg[STRIP]
-	if st == true {
+	if st == nil || st == true {
 		return strings.TrimSpace(raw.(string))
 	}
 
@@ -346,7 +412,11 @@ func (p *Parser) getRefineMethodName(key string, refine, attr interface{}) strin
 			mtdName = fmt.Sprintf("%v_%v", PREFIX_REFINE, key)
 		}
 	case string:
-		mtdName = mtd
+		if mtd == REFINE_NAME_BY_KEY {
+			mtdName = fmt.Sprintf("%v_%v", PREFIX_REFINE, key)
+		} else {
+			mtdName = mtd
+		}
 	default:
 		panic(xpretty.Redf("refine method should be (bool or str), but (%s is %T: %v)\n", key, mtd, mtd))
 	}
@@ -356,4 +426,12 @@ func (p *Parser) getRefineMethodName(key string, refine, attr interface{}) strin
 		mtdName = PREFIX_REFINE + mtdName
 	}
 	return mtdName
+}
+
+func (p *Parser) getJoinerOr(cfg map[string]interface{}, or string) string {
+	joiner := or
+	if cfg[JOINER] != nil {
+		joiner = cfg[JOINER].(string)
+	}
+	return joiner
 }

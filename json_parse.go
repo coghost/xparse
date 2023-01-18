@@ -37,6 +37,7 @@ func (p *JsonParser) DoParse() {
 	for key, cfg := range p.Config.Data() {
 		switch cfgType := cfg.(type) {
 		case map[string]interface{}:
+			p.rankOffset = 0
 			p.parseDom(key, cfgType, p.Root.(gjson.Result), p.ParsedData, _layerForRank)
 		default:
 			fmt.Println(xpretty.Redf("[NON-MAP] {%v:%v}, please move into a map instead", key, cfg))
@@ -83,7 +84,9 @@ func (p *JsonParser) getSelectionSliceAttr(key string, cfg map[string]interface{
 	for _, v := range resultArr {
 		raw = append(raw, v.String())
 	}
-	v := p.refineAttr(key, strings.Join(raw, ATTR_SEP), cfg, resultArr)
+
+	joiner := p.getJoinerOr(cfg, ATTR_SEP)
+	v := p.refineAttr(key, strings.Join(raw, joiner), cfg, resultArr)
 	return p.convertToType(v, cfg)
 }
 
@@ -130,14 +133,15 @@ func (p *JsonParser) handle_map(
 				p.FocusedStub = gs
 			}
 
+			// only calculate rank at first layer
+			if layer == _layerForRank {
+				p.setRank(cfg)
+			}
+
 			subData := make(map[string]interface{})
 			allSubData = append(allSubData, subData)
 
 			p.parse_dom_nodes(cfg, gs, subData)
-			// only calculate rank at first layer
-			if layer == _layerForRank {
-				p.rank++
-			}
 		}
 		data[key] = allSubData
 	}

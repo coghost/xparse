@@ -62,8 +62,7 @@ func (s *HtmlParserSuite) TearDownSuite() {
 }
 
 func (s *HtmlParserSuite) Test_0100PanicsWithUnsupportedType() {
-	str := getBytes("html_yaml/0100.yaml")
-	yml := []byte(str)
+	yml := getBytes("html_yaml/0100.yaml")
 	ps := NewHtmlParser(s.rawHtml, yml)
 	s.PanicsWithValue(
 		"\x1b[31;1munknown type of (footnote:[div.ok div.fail]), only support (1:string or 2:map[string]interface{})\x1b[0m",
@@ -73,8 +72,7 @@ func (s *HtmlParserSuite) Test_0100PanicsWithUnsupportedType() {
 }
 
 func (s *HtmlParserSuite) Test_0101PanicsWithIndexE1() {
-	str := getBytes("html_yaml/0101.yaml")
-	yml := []byte(str)
+	yml := getBytes("html_yaml/0101.yaml")
 	ps := NewHtmlParser(s.rawHtml, yml)
 	s.PanicsWithValue(
 		"\x1b[31;1mall indexes should be int, but (comic_nav is []interface {}: [b a])\n\x1b[0m",
@@ -84,8 +82,7 @@ func (s *HtmlParserSuite) Test_0101PanicsWithIndexE1() {
 }
 
 func (s *HtmlParserSuite) Test_0102PanicsWithIndexE2() {
-	str := getBytes("html_yaml/0102.yaml")
-	yml := []byte(str)
+	yml := getBytes("html_yaml/0102.yaml")
 	ps := NewHtmlParser(s.rawHtml, yml)
 	s.PanicsWithValue(
 		"\x1b[31;1mindex should be int or []interface{}, but (comic_nav is map[string]interface {}: map[fail:href panic:enrich_url])\n\x1b[0m",
@@ -95,8 +92,7 @@ func (s *HtmlParserSuite) Test_0102PanicsWithIndexE2() {
 }
 
 func (s *HtmlParserSuite) Test_0103PanicsWithRefineMethod() {
-	str := getBytes("html_yaml/0103.yaml")
-	yml := []byte(str)
+	yml := getBytes("html_yaml/0103.yaml")
 	ps := NewHtmlParser(s.rawHtml, yml)
 
 	_refine_ctitle1 := func(raw ...interface{}) interface{} {
@@ -110,8 +106,7 @@ func (s *HtmlParserSuite) Test_0103PanicsWithRefineMethod() {
 }
 
 func (s *HtmlParserSuite) Test_0200DataStr() {
-	str := getBytes("html_yaml/0200.yaml")
-	yml := []byte(str)
+	yml := getBytes("html_yaml/0200.yaml")
 	ps := NewHtmlParser(s.rawHtml, yml)
 	ps.DoParse()
 	raw, e := ps.DataAsJson()

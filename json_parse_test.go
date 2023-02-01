@@ -186,7 +186,7 @@ jobs:
 
 func (s *JsonParserSuite) Test_05_type() {
 	rawYaml := getBytes("json_yaml/05.yaml")
-	p := NewJsonParser(s.rawJson, []byte(rawYaml))
+	p := NewJsonParser(s.rawJson, rawYaml)
 	p.DoParse()
 
 	want := map[string]interface{}{
@@ -234,7 +234,7 @@ func refineSalaryMin(raw ...interface{}) interface{} {
 
 func (s *JsonParserSuite) Test_0601_attrRefineManually() {
 	rawYaml := getBytes("json_yaml/0601.yaml")
-	p := NewJsonParser(s.rawJson, []byte(rawYaml))
+	p := NewJsonParser(s.rawJson, rawYaml)
 	p.Refiners["RefineMax"] = refineMax
 	p.Refiners["RefineSalaryMin"] = refineSalaryMin
 	p.DoParse()
@@ -285,7 +285,7 @@ func (p *Parser2) RefineSalaryMin(raw ...interface{}) interface{} {
 
 func (s *JsonParserSuite) Test_0602_attrRefineAutoFind() {
 	rawYaml := getBytes("json_yaml/0602.yaml")
-	p := newParser2(s.rawJson, []byte(rawYaml))
+	p := newParser2(s.rawJson, rawYaml)
 	UpdateRefiners(p)
 	p.DoParse()
 
@@ -314,7 +314,7 @@ func (s *JsonParserSuite) Test_0602_attrRefineAutoFind() {
 
 func (s *JsonParserSuite) Test_0701_locator_gjson_multipaths() {
 	rawYaml := getBytes("json_yaml/0701.yaml")
-	p := NewJsonParser(s.rawJson, []byte(rawYaml))
+	p := NewJsonParser(s.rawJson, rawYaml)
 	p.DoParse()
 
 	want := map[string]interface{}{
@@ -339,7 +339,7 @@ func (s *JsonParserSuite) Test_0701_locator_gjson_multipaths() {
 
 func (s *JsonParserSuite) Test_0702_locator_list() {
 	rawYaml := getBytes("json_yaml/0702.yaml")
-	p := NewJsonParser(s.rawJson, []byte(rawYaml))
+	p := NewJsonParser(s.rawJson, rawYaml)
 	p.DoParse()
 
 	want := map[string]interface{}{
@@ -364,7 +364,7 @@ func (s *JsonParserSuite) Test_0702_locator_list() {
 func (s *JsonParserSuite) Test_0703_locator_map() {
 	rawYaml := getBytes("json_yaml/0703.yaml")
 
-	p := NewJsonParser(s.rawJson, []byte(rawYaml))
+	p := NewJsonParser(s.rawJson, rawYaml)
 	p.DoParse()
 
 	want := map[string]interface{}{
@@ -396,7 +396,7 @@ func RefineAttr(raw ...interface{}) interface{} {
 func (s *JsonParserSuite) Test_0704_locator_list2() {
 	rawYaml := getBytes("json_yaml/0704.yaml")
 
-	p := NewJsonParser(s.rawJson, []byte(rawYaml))
+	p := NewJsonParser(s.rawJson, rawYaml)
 	p.Refiners["RefineAttr"] = RefineAttr
 	p.DoParse()
 
@@ -433,7 +433,7 @@ func newParser3(rawData, ymlMap []byte) *Parser3 {
 
 func (p *Parser3) RefineTaxoAttrArr(raw ...interface{}) interface{} {
 	v := cast.ToString(raw[0])
-	arr := strings.Split(v, ATTR_SEP)
+	arr := strings.Split(v, AttrJoinerSep)
 	return arr
 }
 
@@ -446,7 +446,7 @@ func (p *Parser3) RefineTaxoAttrMap(raw ...interface{}) interface{} {
 
 func (s *JsonParserSuite) Test_0801_refineComplexSel() {
 	rawYaml := getBytes("json_yaml/0801.yaml")
-	p := newParser3(s.rawJson, []byte(rawYaml))
+	p := newParser3(s.rawJson, rawYaml)
 	UpdateRefiners(p)
 	p.DoParse()
 

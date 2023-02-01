@@ -11,62 +11,12 @@ import (
 )
 
 const (
-	_DEFAULT_STUB = "jobs"
+	_defaultStubKey = "jobs"
 )
-
-// Verify if rawJson contains keys or not, and print(or not) missed keys according to level
-//
-//	printLevel:
-//	 - 0(print none)
-//	 - 1(print all)
-//	 - 2(print only missed keys)
-//
-//	  @return failed_keys
-func Verify_v1(rawJson string, keys []string, opts ...VerifyOptFunc) (failed map[string][]string) {
-	opt := VerifyOpts{stubKey: "jobs", level: VerifyPrintAll}
-	bindVerifyOpts(&opt, opts...)
-
-	failed = make(map[string][]string)
-	result := gjson.Get(rawJson, opt.stubKey)
-
-	result.ForEach(func(_, value gjson.Result) bool {
-		fn := xpretty.Greenf
-		rank := ""
-		arr := []string{}
-		for _, key := range keys {
-			ok := true
-			_rank, val := value.Get("rank").Raw, value.Get(key).String()
-			_fn := xpretty.Greenf
-			if val == "" {
-				_fn = xpretty.Redfu
-				fn = _fn
-				failed[key] = append(failed[key], _rank)
-				ok = false
-			}
-			if opt.level == VerifyPrintAll || !ok {
-				arr = append(arr, _fn("\t| %s: %s\n", key, val))
-			}
-			rank = _rank
-		}
-		v1 := fn("%3s.", rank)
-		if len(arr) != 0 {
-			arr = Insert(arr, 0, v1)
-		}
-		if opt.level != VerifyPrintNone {
-			fmt.Print(strings.Join(arr, ""))
-		}
-		return true
-	})
-
-	if funk.IsEmpty(result) {
-		xpretty.RedPrintf("Verify failed: rawJson has no key (%s), please check the rootKey passed in\n", opt.stubKey)
-	}
-	return failed
-}
 
 func Verify(rawJson string, keys []string, opts ...VerifyOptFunc) (failed map[string][]string, allResp map[string]map[int][]string) {
 	sym := "┃"
-	opt := VerifyOpts{level: VerifyPrintAll, stubKey: _DEFAULT_STUB, color: true}
+	opt := VerifyOpts{level: VerifyPrintAll, stubKey: _defaultStubKey, color: true}
 	bindVerifyOpts(&opt, opts...)
 	xpretty.ToggleColor(opt.color)
 
@@ -81,11 +31,11 @@ func Verify(rawJson string, keys []string, opts ...VerifyOptFunc) (failed map[st
 	allResults := make(map[string]map[int][]string)
 	allResp = make(map[string]map[int][]string)
 
-	// first go through the keys to be verified to get all stubkeys with its items' ranks
+	// first go through the keys to be verified to get all stub keys with its items' ranks
 	for _, key := range keys {
 		k := strings.Split(key, ".")[0]
 
-		// if there's no dot found, we'll add the stubkey to keys
+		// if there's no dot found, we'll add the stub key to keys
 		if !strings.Contains(key, ".") {
 			k = opt.stubKey
 			key = opt.stubKey + "." + key
@@ -113,7 +63,7 @@ func Verify(rawJson string, keys []string, opts ...VerifyOptFunc) (failed map[st
 		wanted := strings.Split(stk, "#")[0]
 		wantStub := wanted[:len(wanted)-1]
 
-		arr := []string{}
+		var arr []string
 
 		if len(stubKeys) > 1 {
 			v := xpretty.Cyanf("%[2]s*\n%[1]s", strings.Repeat("-", 32), wanted)

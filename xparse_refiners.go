@@ -20,7 +20,7 @@ func (p *Parser) RefineUrl(raw ...interface{}) interface{} {
 }
 
 func (p *Parser) EnrichUrl(raw ...interface{}) interface{} {
-	domain := p.Config.String("__raw.site_url")
+	domain := p.config.String("__raw.site_url")
 	uri := EnrichUrl(raw[0], domain)
 	return uri
 }

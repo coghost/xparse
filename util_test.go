@@ -41,7 +41,7 @@ func (s *UtilSuite) Test01_GetKeys() {
 	Structify(s.rawJson, &dat)
 	// keys := GetKeys(dat["friends"], "friends")
 
-	all := []string{}
+	var all []string
 	GetMapKeys(&all, dat)
 	fmt.Println(all)
 	// PrintAllKeys(dat)

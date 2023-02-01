@@ -54,8 +54,8 @@ func EnrichUrl(raw interface{}, domain string) interface{} {
 // GetProjectHome
 //
 // get the full path of current project, which is separated by projectName,
-// please make sure you supplied an unique projectName
-// and the fullname of project directory
+// please make sure you supplied a unique projectName
+// and the full name of project directory
 func GetProjectHome(projectName string) string {
 	pwd, _ := os.Getwd()
 	arr := strings.Split(pwd, projectName)
@@ -75,7 +75,6 @@ func FirstOrDefaultArgs[T Basic](dft T, args ...T) (val T) {
 	return val
 }
 
-// Insert
 func Insert[T Basic](a []T, index int, value T) []T {
 	// nil or empty slice or after last element
 	if len(a) == index {
@@ -87,7 +86,7 @@ func Insert[T Basic](a []T, index int, value T) []T {
 	return a
 }
 
-// GetStrBySplit: split raw str with separator and join from offset
+// GetStrBySplit split raw str with separator and join from offset
 //
 //	example:
 //	 raw = "a,b,c,d,e"
@@ -122,7 +121,6 @@ func GetType(obj interface{}) string {
 	}
 }
 
-// GetMapKeys
 func GetMapKeys(all *[]string, data interface{}, args ...string) {
 	prefix := FirstOrDefaultArgs("", args...)
 
@@ -175,7 +173,6 @@ func GetMapKeys(all *[]string, data interface{}, args ...string) {
 	}
 }
 
-// Invoke
 func Invoke(any interface{}, name string, args ...interface{}) []reflect.Value {
 	inputs := make([]reflect.Value, len(args))
 	for i := range args {

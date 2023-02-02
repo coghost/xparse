@@ -34,7 +34,7 @@ func (p *JsonParser) LoadRootSelection(raw []byte) {
 
 func (p *JsonParser) DoParse() {
 	p.runCheck()
-	for key, cfg := range p.Config.Data() {
+	for key, cfg := range p.config.Data() {
 		switch cfgType := cfg.(type) {
 		case map[string]interface{}:
 			p.rankOffset = 0
@@ -66,7 +66,7 @@ func (p *JsonParser) parseDom(key string, cfg interface{}, result gjson.Result, 
 		// the recursive end condition
 		p.handleStr(key, v, result, data)
 	case map[string]interface{}:
-		p.handle_map(key, v, result, data, layer)
+		p.handleMap(key, v, result, data, layer)
 	default:
 		panic(xpretty.Redf("unknown type of (%v:%v), only support (1:string or 2:map[string]interface{})", key, cfg))
 	}
@@ -85,7 +85,7 @@ func (p *JsonParser) getSelectionSliceAttr(key string, cfg map[string]interface{
 		raw = append(raw, v.String())
 	}
 
-	joiner := p.getJoinerOr(cfg, ATTR_SEP)
+	joiner := p.getJoinerOr(cfg, AttrJoinerSep)
 	v := p.refineAttr(key, strings.Join(raw, joiner), cfg, resultArr)
 	return p.convertToType(v, cfg)
 }
@@ -104,7 +104,7 @@ func (p *JsonParser) handleStr(key string, sel string, result gjson.Result, data
 	data[key] = result.Get(sel).String()
 }
 
-func (p *JsonParser) handle_map(
+func (p *JsonParser) handleMap(
 	key string,
 	cfg map[string]interface{},
 	result gjson.Result,
@@ -121,7 +121,7 @@ func (p *JsonParser) handle_map(
 	case gjson.Result:
 		subData := make(map[string]interface{})
 		data[key] = subData
-		p.parse_dom_nodes(cfg, dom, subData)
+		p.parseDomNodes(cfg, dom, subData)
 		if layer == _layerForRank {
 			p.FocusedStub = dom
 		}
@@ -141,7 +141,7 @@ func (p *JsonParser) handle_map(
 			subData := make(map[string]interface{})
 			allSubData = append(allSubData, subData)
 
-			p.parse_dom_nodes(cfg, gs, subData)
+			p.parseDomNodes(cfg, gs, subData)
 		}
 		data[key] = allSubData
 	}
@@ -157,14 +157,14 @@ func (p *JsonParser) getIndex(sel interface{}, result gjson.Result, index int) (
 }
 
 func (p *JsonParser) getAllElems(key string, cfg map[string]interface{}, result gjson.Result) (iface interface{}, isComplexSel bool) {
-	sel := cfg[LOCATOR]
+	sel := cfg[Locator]
 	if sel == nil {
 		return result, false
 	}
 
 	switch sel := sel.(type) {
 	case string:
-		if sel == _ORDERED_LIST_CONST {
+		if sel == JsonArrayRootLocator {
 			result = gjson.Parse(p.RawData)
 		} else {
 			result = result.Get(sel)
@@ -202,7 +202,7 @@ func (p *JsonParser) getAllElems(key string, cfg map[string]interface{}, result 
 
 func (p *JsonParser) handleStub(raw interface{}, result gjson.Result) (interface{}, gjson.Result) {
 	ar1 := strings.Split(raw.(string), ".")
-	if ar1[0] == PREFIX_LOCATOR_STUB {
+	if ar1[0] == PrefixLocatorStub {
 		raw = strings.Join(ar1[1:], ".")
 		result = p.FocusedStub.(gjson.Result)
 	}
@@ -211,7 +211,7 @@ func (p *JsonParser) handleStub(raw interface{}, result gjson.Result) (interface
 }
 
 func (p *JsonParser) getOneSelector(key string, sel interface{}, cfg map[string]interface{}, result gjson.Result) (iface interface{}) {
-	index, exist := cfg[INDEX]
+	index, exist := cfg[Index]
 	if index == nil {
 		if !exist {
 			return p.getIndex(sel, result, 0)
@@ -239,7 +239,7 @@ func (p *JsonParser) getOneSelector(key string, sel interface{}, cfg map[string]
 	}
 }
 
-func (p *JsonParser) parse_dom_nodes(
+func (p *JsonParser) parseDomNodes(
 	cfg map[string]interface{},
 	result gjson.Result,
 	data map[string]interface{},

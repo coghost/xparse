@@ -24,13 +24,14 @@ const (
 )
 
 type Parser struct {
-	SourceData []byte
-	SourceYaml []byte
+	sourceData []byte
+	sourceYaml [][]byte
 
-	Config *config.Config
-	Root   interface{}
+	config *config.Config
 
-	// this is a map's stub, check PREFIX_LOCATOR_STUB for more info
+	Root interface{}
+
+	// this is a map's stub, check PrefixLocatorStub for more info
 	FocusedStub interface{}
 
 	RawData string
@@ -40,7 +41,7 @@ type Parser struct {
 
 	rank       int
 	rankOffset int
-	// whether use the real order of page or not (which is same as _index:)
+	// use the real order of page or not (which is same as _index:)
 	rankAsIndex bool
 
 	// map to config
@@ -70,8 +71,9 @@ type Parser struct {
 
 func NewParser(raw []byte, ymlMap ...[]byte) *Parser {
 	return &Parser{
-		SourceData: raw,
-		Config:     &config.Config{},
+		sourceData: raw,
+		sourceYaml: ymlMap,
+		config:     &config.Config{},
 		ParsedData: make(map[string]interface{}),
 		Refiners:   make(map[string]func(args ...interface{}) interface{}),
 
@@ -90,9 +92,9 @@ func (p *Parser) Debug(key interface{}, raw ...interface{}) {
 }
 
 func (p *Parser) LoadConfig(ymlCfg ...[]byte) {
-	p.Config = Yaml2Config(ymlCfg...)
-	p.testKeys = p.Config.Strings("__raw.test_keys")
-	p.verifyKeys = p.Config.Strings("__raw.verify_keys")
+	p.config = Yaml2Config(ymlCfg...)
+	p.testKeys = p.config.Strings("__raw.test_keys")
+	p.verifyKeys = p.config.Strings("__raw.verify_keys")
 }
 
 func (p *Parser) GetVerifyKeys() (arr []string) {
@@ -103,10 +105,10 @@ func (p *Parser) GetVerifyKeys() (arr []string) {
 //
 // get raw info's value in config file
 //   - if args is empty, will return __raw's value
-//   - else return the first args's value
+//   - else return the first value in args
 func (p *Parser) GetRawInfo(args ...string) map[string]interface{} {
 	key := FirstOrDefaultArgs("__raw", args...)
-	raw := p.Config.Data()[key]
+	raw := p.config.Data()[key]
 	return raw.(map[string]interface{})
 }
 
@@ -149,7 +151,7 @@ func (p *Parser) MustDataAsYaml(args ...interface{}) string {
 }
 
 func (p *Parser) Scan() {
-	for key, cfg := range p.Config.Data() {
+	for key, cfg := range p.config.Data() {
 		switch cfgType := cfg.(type) {
 		case map[string]interface{}:
 			p.parseAttrs("", key, cfgType)
@@ -164,15 +166,12 @@ func (p *Parser) parseAttrs(parentKey, key string, config interface{}) {
 	switch cfg := config.(type) {
 	case map[string]interface{}:
 		if p.isLeaf(cfg) {
-			// if _, b := cfg[ATTR_REFINE]; !b {
-			// 	return
-			// }
-			attr := cfg[ATTR]
-			refine, b := cfg[ATTR_REFINE]
+			refine, b := cfg[AttrRefine]
 			if !b {
 				return
 			}
 
+			attr := cfg[Attr]
 			name := p.getRefineMethodName(key, refine, attr)
 			name = strcase.ToCamel(name)
 			p.AttrToBeRefined = append(p.AttrToBeRefined, name)
@@ -214,7 +213,7 @@ func (p *Parser) check(key string) bool {
 	}
 
 	nk := strings.Join(p.nestedKeys, ".")
-	// len == 1, check if startswith nk
+	// len == 1, check if starts with nk or not
 	if len(p.nestedKeys) == 1 {
 		for _, tk := range p.testKeys {
 			if strings.HasPrefix(tk, nk) {
@@ -279,14 +278,14 @@ func (p *Parser) ToggleRankType(b bool) {
 }
 
 func (p *Parser) setRank(cfg map[string]interface{}) {
-	if cfg[INDEX] == nil {
-		// when INDEX is nil, means use every items, so rank is same with offset
+	if cfg[Index] == nil {
+		// when _index is nil, means use every item, so rank is same with offset
 		p.rank = p.rankOffset
 		p.rankOffset++
 		return
 	}
 
-	switch idx := cfg[INDEX].(type) {
+	switch idx := cfg[Index].(type) {
 	case int:
 		p.rank = idx
 	case []interface{}:
@@ -302,14 +301,14 @@ func (p *Parser) setRank(cfg map[string]interface{}) {
 }
 
 func (p *Parser) convertToType(raw interface{}, cfg map[string]interface{}) interface{} {
-	t, o := cfg[TYPE]
+	t, o := cfg[Type]
 	if o {
 		switch t {
-		case ATTR_TYPE_B:
+		case AttrTypeB:
 			return cast.ToBool(raw)
-		case ATTR_TYPE_I:
+		case AttrTypeI:
 			return cast.ToInt(math.Round(cast.ToFloat64(raw)))
-		case ATTR_TYPE_F:
+		case AttrTypeF:
 			return cast.ToFloat64(raw)
 		}
 	}
@@ -318,8 +317,8 @@ func (p *Parser) convertToType(raw interface{}, cfg map[string]interface{}) inte
 }
 
 func (p *Parser) TrimSpace(txt string, cfg map[string]interface{}) string {
-	st := cfg[STRIP]
-	if st == nil || st == false {
+	st := cfg[Strip]
+	if st == false {
 		return txt
 	}
 	return strings.TrimSpace(txt)
@@ -335,7 +334,7 @@ func (p *Parser) stripChars(key string, raw interface{}, cfg map[string]interfac
 }
 
 func (p *Parser) stripStrings(key string, raw interface{}, cfg map[string]interface{}) interface{} {
-	st := cfg[STRIP]
+	st := cfg[Strip]
 	if st == nil || st == true {
 		return strings.TrimSpace(raw.(string))
 	}
@@ -349,7 +348,7 @@ func (p *Parser) stripStrings(key string, raw interface{}, cfg map[string]interf
 
 func (p *Parser) isMethodExisted(mtd_name string) (rv reflect.Value, b bool) {
 	// automatically convert snake_case(which is written in yaml) to CamelCase or camelCase
-	// first check camelCase (private method preffered)
+	// first check camelCase (private method preferred)
 	// if not found then check CamelCase
 	mtdName := strcase.ToLowerCamel(mtd_name)
 	MtdName := strcase.ToCamel(mtd_name)
@@ -380,8 +379,8 @@ func (p *Parser) getRefinerFn(mtd_name string) (func(raw ...interface{}) interfa
 }
 
 func (p *Parser) refineAttr(key string, raw interface{}, cfg map[string]interface{}, selection interface{}) interface{} {
-	attr := cfg[ATTR]
-	refine := cfg[ATTR_REFINE]
+	attr := cfg[Attr]
+	refine := cfg[AttrRefine]
 	if refine == nil {
 		return raw
 	}
@@ -391,7 +390,7 @@ func (p *Parser) refineAttr(key string, raw interface{}, cfg map[string]interfac
 	if !ok {
 		injectFn, b := p.getRefinerFn(mtd_name)
 		if b {
-			return injectFn(raw, p.Config, selection)
+			return injectFn(raw, p.config, selection)
 		}
 	}
 
@@ -407,31 +406,31 @@ func (p *Parser) getRefineMethodName(key string, refine, attr interface{}) strin
 	case bool:
 		switch attr.(type) {
 		case string:
-			mtdName = fmt.Sprintf("%v_%v_%v", PREFIX_REFINE, key, attr)
+			mtdName = fmt.Sprintf("%v_%v_%v", _prefixRefine, key, attr)
 		default:
-			mtdName = fmt.Sprintf("%v_%v", PREFIX_REFINE, key)
+			mtdName = fmt.Sprintf("%v_%v", _prefixRefine, key)
 		}
 	case string:
-		if mtd == REFINE_NAME_BY_KEY {
-			mtdName = fmt.Sprintf("%v_%v", PREFIX_REFINE, key)
+		if mtd == RefineWithKeyName {
+			mtdName = fmt.Sprintf("%v_%v", _prefixRefine, key)
 		} else {
 			mtdName = mtd
 		}
 	default:
 		panic(xpretty.Redf("refine method should be (bool or str), but (%s is %T: %v)\n", key, mtd, mtd))
 	}
-	// auto add refine to method startswith "_" like "_abc"
+	// auto add refine to method starts with "_" like "_abc"
 	// so "_abc" will be converted to "refine_abc"
-	if strings.HasPrefix(mtdName, "_") && !strings.HasPrefix(mtdName, PREFIX_REFINE) {
-		mtdName = PREFIX_REFINE + mtdName
+	if strings.HasPrefix(mtdName, "_") && !strings.HasPrefix(mtdName, _prefixRefine) {
+		mtdName = _prefixRefine + mtdName
 	}
 	return mtdName
 }
 
 func (p *Parser) getJoinerOr(cfg map[string]interface{}, or string) string {
 	joiner := or
-	if cfg[JOINER] != nil {
-		joiner = cfg[JOINER].(string)
+	if j := cfg[AttrJoiner]; j != nil {
+		joiner = j.(string)
 	}
 	return joiner
 }

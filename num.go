@@ -10,10 +10,12 @@ import (
 	"github.com/spf13/cast"
 )
 
-const MaxUint = ^uint(0)
-const MinUint = 0
-const MaxInt = int(MaxUint >> 1)
-const MinInt = -MaxInt - 1
+const (
+	MaxUint = ^uint(0)
+	MinUint = 0
+	MaxInt  = int(MaxUint >> 1)
+	MinInt  = -MaxInt - 1
+)
 
 var ErrorNoNumbers = errors.New("no number found")
 
@@ -42,8 +44,9 @@ func bindOpts(opt *NumOpts, opts ...NumOptFunc) {
 	}
 }
 
-// CharToNum: substract `number+Chars` from source str
-// returns int by default
+// CharToNum extract `number+Chars` from source str
+//
+//	the extracted value could be float value, so convert to float first, then return int by default
 func CharToNum(s string, opts ...NumOptFunc) (v interface{}, e error) {
 	opt := NumOpts{chars: ".", dft: 1}
 	bindOpts(&opt, opts...)
@@ -59,14 +62,13 @@ func CharToNum(s string, opts ...NumOptFunc) (v interface{}, e error) {
 
 	switch opt.dft.(type) {
 	case int:
-		// v could be float
 		v, e := cast.ToFloat64E(r)
 		if e != nil {
 			return nil, e
 		}
 		return cast.ToIntE(v)
 	case int64:
-		// v could be float
+		// v could be float value
 		v, e := cast.ToFloat64E(r)
 		if e != nil {
 			return nil, e

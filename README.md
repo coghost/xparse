@@ -1,3 +1,38 @@
+# xparse
+
+parse raw html or raw json file to structured data with yaml config file
+
+## demo
+
+```yaml
+__raw:
+  site_url: https://xkcd.com/
+  test_keys:
+    - bottom.comic_links.*
+    - middle.ctitle
+    - middle.transcript
+
+bottom:
+  _locator: div#bottom
+  comic_links:
+    _locator: div#comicLinks>a
+    _index: ~
+    text:
+    href:
+      _attr: href
+      _attr_refine: enrich_url
+
+middle:
+  _locator: div#middleContainer
+  ctitle: div#ctitle
+  transcript: div#transcript
+```
+
+## constants
+
+all reserved keys when we used to write yaml config file to map the HTML/JSON
+
+```go
 package xparse
 
 const (
@@ -120,3 +155,41 @@ const (
 	AttrTypeF = "f"
 	AttrTypeI = "i"
 )
+
+```
+
+## Reserved keys/TODO
+
+```go
+package xparse
+
+// file: const.go
+
+// TODO:
+const (
+	ABBR_ATTR            = "_a"
+	ABBR_ATTR_REFINE     = "_ar"
+	ABBR_INDEX           = "_i"
+	ABBR_STRIP           = "_s"
+	ABBR_LOCATOR         = "_l"
+	ABBR_LOCATOR_EXTRACT = "_le"
+	ABBR_PREFIX_EXTRACT  = "_e"
+	ABBR_PREFIX_REFINE   = "_r"
+	ABBR_TYPE            = "_t"
+)
+
+// TODO:
+var reservedWords = map[string]string{
+	"attr":          "_attr",
+	"attr_refine":   "_attr_refine",
+	"prefix_refine": "_refine",
+	"index":         "_index",
+	"strip":         "_strip",
+	"locator":       "_locator",
+	"type":          "_type",
+
+	"joiner":          "_joiner",
+	"locator_extract": "_locator_extract",
+	"prefix_extract":  "_extract",
+}
+```

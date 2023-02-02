@@ -36,7 +36,7 @@ func (p *HtmlParser) LoadRootSelection(raw []byte) {
 
 func (p *HtmlParser) DoParse() {
 	p.runCheck()
-	for key, cfg := range p.Config.Data() {
+	for key, cfg := range p.config.Data() {
 		switch cfgType := cfg.(type) {
 		case map[string]interface{}:
 			p.rankOffset = 0
@@ -72,7 +72,7 @@ func (p *HtmlParser) parseDom(key string, cfg interface{}, selection *goquery.Se
 		// the recursive end condition
 		p.handleStr(key, v, selection, data)
 	case map[string]interface{}:
-		p.handle_map(key, v, selection, data, layer)
+		p.handleMap(key, v, selection, data, layer)
 	default:
 		panic(xpretty.Redf("unknown type of (%v:%v), only support (1:string or 2:map[string]interface{})", key, cfg))
 	}
@@ -82,11 +82,11 @@ func (p *HtmlParser) handleStr(key string, sel string, selection *goquery.Select
 	data[key] = selection.Find(sel).First().Text()
 }
 
-// handle_map
+// handleMap
 //  1. find all matched elems
 //     1.1. found only 1 node
-//     1.2. found more than 1 nodes
-func (p *HtmlParser) handle_map(
+//     1.2. found more than 1 node
+func (p *HtmlParser) handleMap(
 	key string,
 	cfg map[string]interface{},
 	selection *goquery.Selection,
@@ -104,7 +104,7 @@ func (p *HtmlParser) handle_map(
 	case *goquery.Selection:
 		subData := make(map[string]interface{})
 		data[key] = subData
-		p.parse_dom_nodes(cfg, dom, subData)
+		p.parseDomNodes(cfg, dom, subData)
 
 	case []*goquery.Selection:
 		var allSubData []map[string]interface{}
@@ -121,13 +121,13 @@ func (p *HtmlParser) handle_map(
 			subData := make(map[string]interface{})
 			allSubData = append(allSubData, subData)
 
-			p.parse_dom_nodes(cfg, gs, subData)
+			p.parseDomNodes(cfg, gs, subData)
 		}
 		data[key] = allSubData
 	}
 }
 
-func (p *HtmlParser) parse_dom_nodes(
+func (p *HtmlParser) parseDomNodes(
 	cfg map[string]interface{},
 	selection *goquery.Selection,
 	data map[string]interface{},
@@ -141,7 +141,7 @@ func (p *HtmlParser) parse_dom_nodes(
 }
 
 func (p *HtmlParser) getAllElems(key string, cfg map[string]interface{}, selection *goquery.Selection) (iface interface{}, isComplexSel bool) {
-	sel := cfg[LOCATOR]
+	sel := cfg[Locator]
 	if sel == nil {
 		return selection, isComplexSel
 	}
@@ -180,7 +180,7 @@ func (p *HtmlParser) getAllElems(key string, cfg map[string]interface{}, selecti
 
 func (p *HtmlParser) handleStub(raw interface{}, result *goquery.Selection) (interface{}, *goquery.Selection) {
 	ar1 := strings.Split(raw.(string), ".")
-	if ar1[0] == PREFIX_LOCATOR_STUB {
+	if ar1[0] == PrefixLocatorStub {
 		raw = strings.Join(ar1[1:], ".")
 		result = p.FocusedStub.(*goquery.Selection)
 	}
@@ -203,7 +203,7 @@ func (p *HtmlParser) getElemsOneByOne(key string, selArr []string, cfg map[strin
 
 func (p *HtmlParser) getOneSelector(key string, sel interface{}, cfg map[string]interface{}, selection *goquery.Selection) (iface interface{}, isComplexSel bool) {
 	elems := selection.Find(sel.(string))
-	index := cfg[INDEX]
+	index := cfg[Index]
 	isComplexSel = strings.Contains(sel.(string), ",")
 
 	iface = p.handleNullIndex(key, isComplexSel, cfg, elems)
@@ -239,7 +239,7 @@ func (p *HtmlParser) handleNullIndex(key string, isComplexSel bool, cfg map[stri
 	//  3. index: 0
 	//  4. index: [0, 1, ...]
 	// if index existed, just return nil
-	index, existed := cfg[INDEX]
+	index, existed := cfg[Index]
 	if index != nil {
 		return nil
 	}
@@ -249,10 +249,10 @@ func (p *HtmlParser) handleNullIndex(key string, isComplexSel bool, cfg map[stri
 		if isComplexSel {
 			return p.getAllSelections(elems)
 		}
-		if s, ok := cfg[EXTRACTOR_PREV]; !ok {
+		if s, ok := cfg[ExtractPrevElem]; !ok {
 			return elems.First()
 		} else {
-			return p.extract_node(key, s, elems)
+			return p.extractNode(key, s, elems)
 		}
 	}
 
@@ -260,7 +260,7 @@ func (p *HtmlParser) handleNullIndex(key string, isComplexSel bool, cfg map[stri
 	return p.getAllSelections(elems)
 }
 
-func (p *HtmlParser) extract_node(key string, sel interface{}, elems *goquery.Selection) interface{} {
+func (p *HtmlParser) extractNode(key string, sel interface{}, elems *goquery.Selection) interface{} {
 	switch s := sel.(type) {
 	case bool:
 		return elems.Prev()
@@ -271,7 +271,7 @@ func (p *HtmlParser) extract_node(key string, sel interface{}, elems *goquery.Se
 			return elems.PrevFiltered(s)
 		}
 	default:
-		panic(xpretty.Redf("action _extract_prev only support bool and string, but (%s's %v is %T: %v)", key, EXTRACTOR_PREV, sel, sel))
+		panic(xpretty.Redf("action _extract_prev only support bool and string, but (%s's %v is %T: %v)", key, ExtractPrevElem, sel, sel))
 	}
 }
 
@@ -322,13 +322,13 @@ func (p *HtmlParser) getNodesAttrs(
 }
 
 func (p *HtmlParser) postJoin(cfg map[string]interface{}, data []interface{}) interface{} {
-	if cfg[POST_JOIN] == nil || !cfg[POST_JOIN].(bool) {
+	if cfg[PostJoin] == nil || !cfg[PostJoin].(bool) {
 		return data
 	}
 
 	joiner := p.getJoinerOr(cfg, "")
 
-	arr := []string{}
+	var arr []string
 	for _, v := range data {
 		arr = append(arr, v.(string))
 	}
@@ -342,7 +342,7 @@ func (p *HtmlParser) getSelectionSliceAttr(key string, cfg map[string]interface{
 		raw := p.getRawAttr(cfg, v)
 		resArr = append(resArr, raw.(string))
 	}
-	joiner := p.getJoinerOr(cfg, ATTR_SEP)
+	joiner := p.getJoinerOr(cfg, AttrJoinerSep)
 	v := p.refineAttr(key, strings.Join(resArr, joiner), cfg, resultArr)
 	return p.convertToType(v, cfg)
 }
@@ -368,7 +368,7 @@ func (p *HtmlParser) getSelectionAttr(key string, cfg map[string]interface{}, se
 }
 
 func (p *HtmlParser) getRawAttr(cfg map[string]interface{}, selection *goquery.Selection) interface{} {
-	attr := cfg[ATTR]
+	attr := cfg[Attr]
 
 	// fmt.Printf("Got %T, %v\n", attr, attr)
 	if attr == nil {
@@ -376,11 +376,8 @@ func (p *HtmlParser) getRawAttr(cfg map[string]interface{}, selection *goquery.S
 		return p.TrimSpace(v, cfg)
 	}
 
-	if attr == ATTR_JOINER {
-		joiner := "|"
-		if j := cfg[JOINER]; j != nil {
-			joiner = j.(string)
-		}
+	if attr == AttrJoinElemsText {
+		joiner := p.getJoinerOr(cfg, AttrJoinerSep)
 
 		elems := selection.Contents()
 		var arr []string

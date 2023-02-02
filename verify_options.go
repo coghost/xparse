@@ -24,7 +24,7 @@ func bindVerifyOpts(opt *VerifyOpts, opts ...VerifyOptFunc) {
 	}
 }
 
-func WithOuputLevel(i VerifyOp) VerifyOptFunc {
+func WithOutputLevel(i VerifyOp) VerifyOptFunc {
 	return func(o *VerifyOpts) {
 		o.level = i
 	}

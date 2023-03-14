@@ -31,7 +31,7 @@ func Yaml2Config(raw ...[]byte) (cf *config.Config) {
 	return cf
 }
 
-func EnrichUrl(raw interface{}, domain string) interface{} {
+func EnrichUrl(domain string, raw interface{}) interface{} {
 	uri := raw.(string)
 	pu, err := url.Parse(uri)
 	PanicIfErr(err)

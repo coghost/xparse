@@ -38,7 +38,7 @@ func TestHtmlParser(t *testing.T) {
 func RefineImage_1Src(raw ...interface{}) interface{} {
 	cfg := raw[1].(*config.Config)
 	domain := cfg.String("__raw.site_url")
-	uri := EnrichUrl(raw[0], domain)
+	uri := EnrichUrl(domain, raw[0])
 	return uri
 }
 

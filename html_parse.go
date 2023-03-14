@@ -7,6 +7,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/coghost/xpretty"
+	"github.com/spf13/cast"
 	"github.com/thoas/go-funk"
 	"golang.org/x/net/html"
 )
@@ -46,6 +47,7 @@ func (p *HtmlParser) DoParse() {
 			continue
 		}
 	}
+	p.PostDoParse()
 }
 
 // parseDom
@@ -196,7 +198,12 @@ func (p *HtmlParser) getElemsOneByOne(key string, selArr []string, cfg map[strin
 		v1, backup := p.handleStub(v, backup)
 		v = v1.(string)
 		elem, _ := p.getOneSelector(key, v, cfg, backup)
-		resArr = append(resArr, elem.(*goquery.Selection))
+		switch val := elem.(type) {
+		case *goquery.Selection:
+			resArr = append(resArr, val)
+		case []*goquery.Selection:
+			resArr = append(resArr, val...)
+		}
 	}
 	return resArr
 }
@@ -206,20 +213,41 @@ func (p *HtmlParser) getOneSelector(key string, sel interface{}, cfg map[string]
 	index := cfg[Index]
 	isComplexSel = strings.Contains(sel.(string), ",")
 
-	iface = p.handleNullIndex(key, isComplexSel, cfg, elems)
+	iface = p.handleNullIndexOnly(key, isComplexSel, cfg, elems)
 	if iface != nil {
 		return
 	}
 
 	switch val := index.(type) {
 	case int:
-		iface = elems.Eq(val)
+		iface = elems.Eq(cast.ToInt(val))
+	case uint64:
+		iface = elems.Eq(cast.ToInt(val))
+	case string:
+		arr := strings.Split(val, ",")
+		if len(arr) != 2 {
+			panic(xpretty.Redf("range index format must be (a-b), but (%s is %T: %v)\n", key, val, val))
+		}
+		start, end := 0, len(elems.Nodes)
+		if v := arr[0]; v != "" {
+			start = getIndex(key, v, len(elems.Nodes))
+		}
+		if v := arr[1]; v != "" {
+			end = getIndex(key, v, len(elems.Nodes))
+		}
+		var d []*goquery.Selection
+		for i := start; i < end; i++ {
+			d = append(d, elems.Eq(i))
+		}
+		iface = d
 	case []interface{}:
 		var d []*goquery.Selection
 		for _, v := range val {
 			switch v := v.(type) {
 			case int:
 				d = append(d, elems.Eq(v))
+			case uint64:
+				d = append(d, elems.Eq(cast.ToInt(v)))
 			default:
 				panic(xpretty.Redf("all indexes should be int, but (%s is %T: %v)\n", key, val, val))
 			}
@@ -232,9 +260,21 @@ func (p *HtmlParser) getOneSelector(key string, sel interface{}, cfg map[string]
 	return
 }
 
-func (p *HtmlParser) handleNullIndex(key string, isComplexSel bool, cfg map[string]interface{}, elems *goquery.Selection) interface{} {
+func getIndex(key string, intStr string, total int) int {
+	end, err := cast.ToIntE(intStr)
+	if err != nil {
+		panic(xpretty.Redf("range index must be number, but (%s is %T: %v)", key, intStr, intStr))
+	}
+	if end < 0 {
+		end += total
+	}
+
+	return end
+}
+
+func (p *HtmlParser) handleNullIndexOnly(key string, isComplexSel bool, cfg map[string]interface{}, elems *goquery.Selection) interface{} {
 	// index has 4 types:
-	//  1. without index
+	//  1. without index equal with 3(index:0)
 	//  2. index: ~ (index is null)
 	//  3. index: 0
 	//  4. index: [0, 1, ...]
@@ -244,7 +284,7 @@ func (p *HtmlParser) handleNullIndex(key string, isComplexSel bool, cfg map[stri
 		return nil
 	}
 
-	// index not existed, just return the first selection
+	// a index which not existed, is a shortcut for index:0, so just return the first selection
 	if !existed {
 		if isComplexSel {
 			return p.getAllSelections(elems)
@@ -322,11 +362,16 @@ func (p *HtmlParser) getNodesAttrs(
 }
 
 func (p *HtmlParser) postJoin(cfg map[string]interface{}, data []interface{}) interface{} {
-	if cfg[PostJoin] == nil || !cfg[PostJoin].(bool) {
+	pj, b := cfg[PostJoin]
+	if !b {
 		return data
 	}
 
 	joiner := p.getJoinerOr(cfg, "")
+	switch v := pj.(type) {
+	case string:
+		joiner = v
+	}
 
 	var arr []string
 	for _, v := range data {
@@ -342,8 +387,9 @@ func (p *HtmlParser) getSelectionSliceAttr(key string, cfg map[string]interface{
 		raw := p.getRawAttr(cfg, v)
 		resArr = append(resArr, raw.(string))
 	}
-	joiner := p.getJoinerOr(cfg, AttrJoinerSep)
-	v := p.refineAttr(key, strings.Join(resArr, joiner), cfg, resultArr)
+	// joiner := p.getJoinerOr(cfg, AttrJoinerSep)
+	// v := p.refineAttr(key, strings.Join(resArr, joiner), cfg, resultArr)
+	v := p.refineAttr(key, resArr, cfg, resultArr)
 	return p.convertToType(v, cfg)
 }
 

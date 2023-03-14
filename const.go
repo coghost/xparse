@@ -35,6 +35,8 @@ const (
 	// AttrJoiner attr joiner
 	AttrJoiner = "_joiner"
 
+	AttrIndex = "_attr_index"
+
 	// PostJoin is called when all attrs (as array) are parsed,
 	// it transforms the attrs array to string by joining the joiner
 	PostJoin = "_post_join"
@@ -119,4 +121,7 @@ const (
 	AttrTypeB = "b"
 	AttrTypeF = "f"
 	AttrTypeI = "i"
+	// time
+	AttrTypeT  = "t"
+	AttrTypeT1 = "t1"
 )

@@ -16,7 +16,7 @@ const (
 
 func (p *%[3]s) %[1]s(raw ...interface{}) interface{} {
 	// TODO: raw[0] is the interface of string value parsed
-	// TODO: raw[1] is *config.Config
+	// TODO: raw[1] is map/*config.Config
 	// TODO: raw[2] is *goquery.Selection/gjson.Result
 	txt := p.GetStrBySplitAtIndex(raw[0], "", -1)
 	return txt
@@ -26,7 +26,7 @@ func (p *%[3]s) %[1]s(raw ...interface{}) interface{} {
 
 func (p *%[3]s) %[1]s(raw ...interface{}) interface{} {
 	v := cast.ToString(raw[0])
-	// TODO: raw[1] is *config.Config
+	// TODO: raw[1] is map/*config.Config
 	// TODO: raw[2] is *goquery.Selection/gjson.Result
 	return v
 }
@@ -95,6 +95,7 @@ func prompt(any interface{}, mtd_name, MtdName string, opts ...RefOptFunc) {
 	os.Exit(0)
 }
 
+// UpdateRefiners binds all refiners to parser
 func UpdateRefiners(p interface{}, opts ...RefOptFunc) {
 	opt := RefOpts{hintType: 1}
 	bindRefOpts(&opt, opts...)

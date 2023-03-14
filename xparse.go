@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/coghost/xdtm"
 	"github.com/coghost/xpretty"
 	"github.com/ghodss/yaml"
 	"github.com/gookit/config/v2"
@@ -43,6 +44,9 @@ type Parser struct {
 	rankOffset int
 	// use the real order of page or not (which is same as _index:)
 	rankAsIndex bool
+
+	// PID parser uniqid
+	PID string
 
 	// map to config
 	ParsedData map[string]interface{}
@@ -101,6 +105,21 @@ func (p *Parser) GetVerifyKeys() (arr []string) {
 	return p.verifyKeys
 }
 
+func (p *Parser) BindPresetData(dat map[string]interface{}) {
+	for k, v := range dat {
+		_, b := p.ParsedData[k]
+		if b {
+			continue
+		}
+
+		if funk.IsEmpty(v) {
+			continue
+		}
+
+		p.ParsedData[k] = v
+	}
+}
+
 // GetRawInfo
 //
 // get raw info's value in config file
@@ -114,6 +133,10 @@ func (p *Parser) GetRawInfo(args ...string) map[string]interface{} {
 
 func (p *Parser) GetParsedData() map[string]interface{} {
 	return p.ParsedData
+}
+
+func (p *Parser) PrettifyData(args ...interface{}) {
+	xpretty.PrettyMap(p.ParsedData)
 }
 
 func (p *Parser) PrettifyJsonData(args ...interface{}) {
@@ -191,6 +214,8 @@ func (p *Parser) parseAttrs(parentKey, key string, config interface{}) {
 func (p *Parser) runCheck() {}
 
 func (p *Parser) DoParse() {}
+
+func (p *Parser) PostDoParse() {}
 
 func (p *Parser) popNestedKeys() {
 	if len(p.nestedKeys) == 0 {
@@ -310,9 +335,20 @@ func (p *Parser) convertToType(raw interface{}, cfg map[string]interface{}) inte
 			return cast.ToInt(math.Round(cast.ToFloat64(raw)))
 		case AttrTypeF:
 			return cast.ToFloat64(raw)
+		case AttrTypeT:
+			return p.formatDate(raw, false)
+		case AttrTypeT1:
+			return p.formatDate(raw, true)
 		}
 	}
 
+	return raw
+}
+
+func (p *Parser) formatDate(raw interface{}, bySearch bool) interface{} {
+	if v := xdtm.GetDateTimeStr(raw.(string), xdtm.WithBySearch(bySearch)); v != "" {
+		return v
+	}
 	return raw
 }
 
@@ -342,6 +378,12 @@ func (p *Parser) stripStrings(key string, raw interface{}, cfg map[string]interf
 	switch v := st.(type) {
 	case string:
 		return strings.ReplaceAll(raw.(string), v, "")
+	case []interface{}:
+		val := raw.(string)
+		for _, sub := range v {
+			val = strings.ReplaceAll(val, sub.(string), "")
+		}
+		raw = val
 	}
 	return raw
 }
@@ -387,17 +429,46 @@ func (p *Parser) refineAttr(key string, raw interface{}, cfg map[string]interfac
 	mtd_name := p.getRefineMethodName(key, refine, attr)
 	method, ok := p.isMethodExisted(mtd_name)
 
-	if !ok {
-		injectFn, b := p.getRefinerFn(mtd_name)
-		if b {
-			return injectFn(raw, p.config, selection)
+	if ok {
+		switch val := raw.(type) {
+		case string:
+			param := []reflect.Value{reflect.ValueOf(val)}
+			res := method.Call(param)
+			return res[0].Interface()
+		case []string:
+			var resp []interface{}
+			for _, v := range val {
+				param := []reflect.Value{reflect.ValueOf(v)}
+				res := method.Call(param)
+				resp = append(resp, res[0].Interface())
+			}
+			return resp
+		default:
+			panic(fmt.Sprintf("not supported type %s: %T, %v", key, val, val))
 		}
 	}
 
-	param := []reflect.Value{reflect.ValueOf(raw)}
-	res := method.Call(param)
+	injectFn, b := p.getRefinerFn(mtd_name)
+	if !b {
+		return nil
+	}
 
-	return res[0].Interface()
+	// 1. with full config (*config.Config)
+	// TODO: add a new key like `__return_config`
+	//  - return injectFn(raw, p.config, selection)
+	// 2. only current config (map)
+	switch val := raw.(type) {
+	case string:
+		return injectFn(val, cfg, selection)
+	case []string:
+		var resp []interface{}
+		for _, v := range val {
+			resp = append(resp, injectFn(v, cfg, selection))
+		}
+		return resp
+	default:
+		panic(fmt.Sprintf("not supported type %s: %T, %v", key, val, val))
+	}
 }
 
 func (p *Parser) getRefineMethodName(key string, refine, attr interface{}) string {

@@ -21,7 +21,7 @@ func (p *Parser) RefineUrl(raw ...interface{}) interface{} {
 
 func (p *Parser) EnrichUrl(raw ...interface{}) interface{} {
 	domain := p.config.String("__raw.site_url")
-	uri := EnrichUrl(raw[0], domain)
+	uri := EnrichUrl(domain, raw[0])
 	return uri
 }
 
@@ -77,6 +77,22 @@ func (p *Parser) GetStrBySplit(raw interface{}, sep string, offset int, withSep 
 	}
 	if withSep {
 		return sep + v
+	}
+	return v
+}
+
+func (p *Parser) RefineDotNumber(raw ...interface{}) interface{} {
+	v, err := CharToNum(raw[0].(string))
+	if err != nil {
+		return raw
+	}
+	return v
+}
+
+func (p *Parser) RefineCommaNumber(raw ...interface{}) interface{} {
+	v, err := CharToNum(raw[0].(string), Chars(","))
+	if err != nil {
+		return raw
 	}
 	return v
 }

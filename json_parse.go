@@ -44,6 +44,7 @@ func (p *JsonParser) DoParse() {
 			continue
 		}
 	}
+	p.PostDoParse()
 }
 
 func (p *JsonParser) parseDom(key string, cfg interface{}, result gjson.Result, data map[string]interface{}, layer int) {

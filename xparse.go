@@ -427,18 +427,40 @@ func (p *Parser) refineAttr(key string, raw interface{}, cfg map[string]interfac
 		return raw
 	}
 	mtd_name := p.getRefineMethodName(key, refine, attr)
-	method, ok := p.isMethodExisted(mtd_name)
 
+	// refiners from parser-defined is prior than pre-defined
+	injectFn, b := p.getRefinerFn(mtd_name)
+	if b {
+		// 1. with full config (*config.Config)
+		// TODO: add a new key like `__return_config`
+		//  - return injectFn(raw, p.config, selection)
+		// 2. only current config (map)
+		switch val := raw.(type) {
+		case string:
+			return injectFn(val, cfg, selection)
+		case []string:
+			var resp []interface{}
+			for _, v := range val {
+				resp = append(resp, injectFn(v, cfg, selection))
+			}
+			return resp
+		default:
+			panic(fmt.Sprintf("not supported type %s: %T, %v", key, val, val))
+		}
+	}
+
+	// pre-defined methods
+	method, ok := p.isMethodExisted(mtd_name)
 	if ok {
 		switch val := raw.(type) {
 		case string:
-			param := []reflect.Value{reflect.ValueOf(val)}
+			param := []reflect.Value{reflect.ValueOf(val), reflect.ValueOf(cfg), reflect.ValueOf(selection)}
 			res := method.Call(param)
 			return res[0].Interface()
 		case []string:
 			var resp []interface{}
 			for _, v := range val {
-				param := []reflect.Value{reflect.ValueOf(v)}
+				param := []reflect.Value{reflect.ValueOf(v), reflect.ValueOf(cfg), reflect.ValueOf(selection)}
 				res := method.Call(param)
 				resp = append(resp, res[0].Interface())
 			}
@@ -448,27 +470,7 @@ func (p *Parser) refineAttr(key string, raw interface{}, cfg map[string]interfac
 		}
 	}
 
-	injectFn, b := p.getRefinerFn(mtd_name)
-	if !b {
-		return nil
-	}
-
-	// 1. with full config (*config.Config)
-	// TODO: add a new key like `__return_config`
-	//  - return injectFn(raw, p.config, selection)
-	// 2. only current config (map)
-	switch val := raw.(type) {
-	case string:
-		return injectFn(val, cfg, selection)
-	case []string:
-		var resp []interface{}
-		for _, v := range val {
-			resp = append(resp, injectFn(v, cfg, selection))
-		}
-		return resp
-	default:
-		panic(fmt.Sprintf("not supported type %s: %T, %v", key, val, val))
-	}
+	return nil
 }
 
 func (p *Parser) getRefineMethodName(key string, refine, attr interface{}) string {

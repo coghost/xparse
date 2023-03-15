@@ -26,7 +26,7 @@ func (p *Parser) EnrichUrl(raw ...interface{}) interface{} {
 }
 
 func (p *Parser) ToFloat(raw ...interface{}) interface{} {
-	return ToFixed(cast.ToFloat64(raw), 2)
+	return ToFixed(cast.ToFloat64(raw[0]), 2)
 }
 
 func (p *Parser) BindRank(raw ...interface{}) interface{} {
@@ -42,6 +42,7 @@ func (p *Parser) TrimByFields(raw ...interface{}) interface{} {
 	return strings.Join(strings.Fields(s), " ")
 }
 
+// Trim alias of TrimByFields
 func (p *Parser) Trim(raw ...interface{}) interface{} {
 	return p.TrimByFields(raw...)
 }
@@ -95,4 +96,23 @@ func (p *Parser) RefineCommaNumber(raw ...interface{}) interface{} {
 		return raw
 	}
 	return v
+}
+
+func (p *Parser) RefineAttrByIndex(raw ...interface{}) interface{} {
+	cfg := raw[1].(map[string]interface{})
+
+	idx := 0
+	idxTxt, b := cfg[AttrIndex]
+	if b {
+		idx = cast.ToInt(idxTxt)
+	}
+
+	sep := AttrJoinerSep
+	if txt, b := cfg[AttrJoiner]; b {
+		sep = txt.(string)
+	}
+
+	txt := p.GetStrBySplitAtIndex(raw[0], sep, idx)
+	txt = strings.TrimSpace(txt)
+	return txt
 }

@@ -1,0 +1,22 @@
+header:
+  channel: div.topic_tit h1
+
+posts:
+  _locator: ul.one_channel>li[class=word-break]
+  _index: ~
+  url:
+    _locator: div.mark+a[href^="/post/"]
+    _attr: href
+  likes: &NUMBER
+    _locator: a.like
+    _attr_refine: _refine_number
+  comments:
+    <<: *NUMBER
+    _locator: a.comment
+  views:
+    <<: *NUMBER
+    _locator: a.view
+    _attr_refine: _refine_number
+  listing_date:
+    _locator: a.time
+    _attr_refine: _refine_date

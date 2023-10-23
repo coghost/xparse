@@ -37,6 +37,8 @@ const (
 
 	AttrIndex = "_attr_index"
 
+	AttrRegexp = "_attr_regexp"
+
 	// PostJoin is called when all attrs (as array) are parsed,
 	// it transforms the attrs array to string by joining the joiner
 	PostJoin = "_post_join"

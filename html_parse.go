@@ -221,6 +221,8 @@ func (p *HtmlParser) getOneSelector(key string, sel interface{}, cfg map[string]
 	switch val := index.(type) {
 	case int:
 		iface = elems.Eq(cast.ToInt(val))
+	case int64:
+		iface = elems.Eq(cast.ToInt(val))
 	case uint64:
 		iface = elems.Eq(cast.ToInt(val))
 	case string:
@@ -246,6 +248,8 @@ func (p *HtmlParser) getOneSelector(key string, sel interface{}, cfg map[string]
 			switch v := v.(type) {
 			case int:
 				d = append(d, elems.Eq(v))
+			case int64:
+				d = append(d, elems.Eq(cast.ToInt(v)))
 			case uint64:
 				d = append(d, elems.Eq(cast.ToInt(v)))
 			default:
@@ -254,7 +258,7 @@ func (p *HtmlParser) getOneSelector(key string, sel interface{}, cfg map[string]
 		}
 		iface = d
 	default:
-		panic(xpretty.Redf("index should be int or []interface{}, but (%s is %T: %v)\n", key, val, val))
+		panic(xpretty.Redf("index should be int/int64/uint64 or []interface{}, but (%s is %T: %v)\n", key, val, val))
 	}
 
 	return
@@ -390,6 +394,7 @@ func (p *HtmlParser) getSelectionSliceAttr(key string, cfg map[string]interface{
 	// joiner := p.getJoinerOr(cfg, AttrJoinerSep)
 	// v := p.refineAttr(key, strings.Join(resArr, joiner), cfg, resultArr)
 	v := p.refineAttr(key, resArr, cfg, resultArr)
+	v = p.refineByRe(v, cfg)
 	return p.convertToType(v, cfg)
 }
 
@@ -402,6 +407,7 @@ func (p *HtmlParser) getSelectionMapAttr(key string, cfg map[string]interface{},
 	}
 	str, _ := Stringify(dat)
 	v := p.refineAttr(key, str, cfg, results)
+	v = p.refineByRe(v, cfg)
 	return p.convertToType(v, cfg)
 }
 
@@ -409,6 +415,7 @@ func (p *HtmlParser) getSelectionAttr(key string, cfg map[string]interface{}, se
 	raw := p.getRawAttr(cfg, selection)
 	raw = p.stripChars(key, raw, cfg)
 	raw = p.refineAttr(key, raw, cfg, selection)
+	raw = p.refineByRe(raw, cfg)
 
 	return p.convertToType(raw, cfg)
 }

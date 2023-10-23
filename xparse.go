@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"reflect"
+	"regexp"
 	"strings"
 
 	"github.com/coghost/xdtm"
@@ -11,6 +12,7 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/gookit/config/v2"
 	"github.com/iancoleman/strcase"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cast"
 	"github.com/thoas/go-funk"
 )
@@ -47,6 +49,8 @@ type Parser struct {
 
 	// PID parser uniqid
 	PID string
+
+	presetData map[string]interface{}
 
 	// map to config
 	ParsedData map[string]interface{}
@@ -106,17 +110,54 @@ func (p *Parser) GetVerifyKeys() (arr []string) {
 }
 
 func (p *Parser) BindPresetData(dat map[string]interface{}) {
-	for k, v := range dat {
-		_, b := p.ParsedData[k]
-		if b {
-			continue
-		}
+	if dat == nil {
+		return
+	}
+	p.presetData = dat
+}
 
-		if funk.IsEmpty(v) {
-			continue
-		}
+func (p *Parser) GetPresetData() map[string]interface{} {
+	return p.presetData
+}
 
-		p.ParsedData[k] = v
+func (p *Parser) ExtraInfo() map[string]interface{} {
+	return nil
+}
+
+func (p *Parser) AppendPresetData(data map[string]interface{}) {
+	pd := p.GetPresetData()
+	for k, v := range pd {
+		_, b := data[k]
+		if !b {
+			data[k] = v
+		}
+	}
+
+	// try add parser unique id to data
+	_, b := data["site"]
+	if !b && p.PID != "" {
+		data["site"] = p.PID
+	}
+
+	// try add p.PID to external_id
+	v, b := data["external_id"]
+	if !b {
+		return
+	}
+	s := v.(string)
+	pre := p.PID + "_"
+	if b && p.PID != "" && s != "" && !strings.HasPrefix(s, pre) {
+		data["external_id"] = p.PID + "_" + s
+	}
+}
+
+func (p *Parser) MustMandatoryFields(got, wanted []string) {
+	if len(got) == 0 || len(wanted) == 0 {
+		return
+	}
+	a, _ := funk.DifferenceString(got, wanted)
+	if len(a) != 0 {
+		log.Fatal().Msg(xpretty.Yellowf("unwanted keys %q found, please check if typo or missing", a))
 	}
 }
 
@@ -131,7 +172,7 @@ func (p *Parser) GetRawInfo(args ...string) map[string]interface{} {
 	return raw.(map[string]interface{})
 }
 
-func (p *Parser) GetParsedData() map[string]interface{} {
+func (p *Parser) GetParsedData() interface{} {
 	return p.ParsedData
 }
 
@@ -418,6 +459,20 @@ func (p *Parser) getRefinerFn(mtd_name string) (func(raw ...interface{}) interfa
 	}
 
 	return injectFn, b
+}
+
+func (p *Parser) refineByRe(raw interface{}, cfg map[string]interface{}) interface{} {
+	rgx, ok := cfg[AttrRegexp]
+	if !ok {
+		return raw
+	}
+
+	r, err := regexp.Compile(rgx.(string))
+	if err != nil {
+		log.Error().Err(err).Interface("regexp", rgx).Msg("cannot compile regexp")
+	}
+	v := r.FindString(raw.(string))
+	return v
 }
 
 func (p *Parser) refineAttr(key string, raw interface{}, cfg map[string]interface{}, selection interface{}) interface{} {

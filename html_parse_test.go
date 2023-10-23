@@ -47,7 +47,7 @@ func (p *xkcdParser) RefineAltAlt(raw ...interface{}) interface{} {
 }
 
 func (s *HtmlParserSuite) SetupSuite() {
-	xpretty.Initialize(xpretty.WithColor(true), xpretty.WithDummyLog(true))
+	xpretty.Initialize(xpretty.WithNoColor(true), xpretty.WithDummyLog(true))
 	home := GetProjectHome("xparse")
 	s.rawHtml = fsutil.MustReadFile(filepath.Join(home, "/examples/xkcd/xkcd_353.html"))
 	s.rawYaml = fsutil.MustReadFile(filepath.Join(home, "/examples/xkcd/xkcd.yaml"))

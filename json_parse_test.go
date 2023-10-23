@@ -29,7 +29,7 @@ func TestJsonParser(t *testing.T) {
 }
 
 func (s *JsonParserSuite) SetupSuite() {
-	xpretty.Initialize(xpretty.WithColor(true), xpretty.WithDummyLog(true))
+	xpretty.Initialize(xpretty.WithNoColor(true), xpretty.WithDummyLog(true))
 	home := GetProjectHome("xparse")
 	s.examples_home = home
 	s.rawJson = fsutil.MustReadFile(filepath.Join(home, "/examples/indeed/indeed.json"))

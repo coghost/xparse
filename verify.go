@@ -18,7 +18,7 @@ func Verify(rawJson string, keys []string, opts ...VerifyOptFunc) (failed map[st
 	sym := "┃"
 	opt := VerifyOpts{level: VerifyPrintAll, stubKey: _defaultStubKey, color: true}
 	bindVerifyOpts(&opt, opts...)
-	xpretty.ToggleColor(opt.color)
+	xpretty.SetNoColor(opt.color)
 
 	failed = make(map[string][]string)
 	root := gjson.Parse(rawJson)

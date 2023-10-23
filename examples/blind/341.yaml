@@ -1,0 +1,53 @@
+header:
+  company: div.company .name
+  reviews:
+    _locator: div.rating em.num
+    _attr_refine: true
+
+overview:
+  _locator: section.overview
+  website:
+    _index: 0
+    _locator: ul>li
+    _attr_refine: _attr_by_index
+    _joiner: ' '
+    _attr_index: 1
+  industry: &IND
+    _index: 1
+    _locator: ul>li
+    _attr_refine: _attr_by_index
+    _joiner: ' '
+    _attr_index: -1
+  location:
+    <<: *IND
+    _index: 2
+  founded:
+    <<: *IND
+    _index: 3
+  size:
+    <<: *IND
+    _index: 4
+  salary:
+    <<: *IND
+    _index: 5
+  desc:
+    _locator: div.desc
+# posts:
+#   _locator: section.posts ul.lst>li
+#   _index: ~
+#   url:
+#     _locator: div.mark+a[href^="/post/"]
+#     _attr: href
+#   likes: &NUMBER
+#     _locator: a.like
+#     _attr_refine: _refine_number
+#   comments:
+#     <<: *NUMBER
+#     _locator: a.comment
+#   views:
+#     <<: *NUMBER
+#     _locator: a.view
+#     _attr_refine: _refine_number
+#   listing_date:
+#     _locator: a.time
+#     _attr_refine: _refine_date

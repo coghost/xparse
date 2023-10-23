@@ -70,6 +70,8 @@ const (
 	// AttrJoiner attr joiner
 	AttrJoiner = "_joiner"
 
+	AttrIndex = "_attr_index"
+
 	// PostJoin is called when all attrs (as array) are parsed,
 	// it transforms the attrs array to string by joining the joiner
 	PostJoin = "_post_join"
@@ -154,42 +156,9 @@ const (
 	AttrTypeB = "b"
 	AttrTypeF = "f"
 	AttrTypeI = "i"
+	// time
+	AttrTypeT  = "t"
+	AttrTypeT1 = "t1"
 )
 
-```
-
-## Reserved keys/TODO
-
-```go
-package xparse
-
-// file: const.go
-
-// TODO:
-const (
-	ABBR_ATTR            = "_a"
-	ABBR_ATTR_REFINE     = "_ar"
-	ABBR_INDEX           = "_i"
-	ABBR_STRIP           = "_s"
-	ABBR_LOCATOR         = "_l"
-	ABBR_LOCATOR_EXTRACT = "_le"
-	ABBR_PREFIX_EXTRACT  = "_e"
-	ABBR_PREFIX_REFINE   = "_r"
-	ABBR_TYPE            = "_t"
-)
-
-// TODO:
-var reservedWords = map[string]string{
-	"attr":          "_attr",
-	"attr_refine":   "_attr_refine",
-	"prefix_refine": "_refine",
-	"index":         "_index",
-	"strip":         "_strip",
-	"locator":       "_locator",
-	"type":          "_type",
-
-	"joiner":          "_joiner",
-	"locator_extract": "_locator_extract",
-	"prefix_extract":  "_extract",
-}
 ```

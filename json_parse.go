@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	"github.com/coghost/xpretty"
+	"github.com/gookit/goutil/dump"
+	"github.com/spf13/cast"
 	"github.com/thoas/go-funk"
 	"github.com/tidwall/gjson"
 )
@@ -76,6 +78,7 @@ func (p *JsonParser) parseDom(key string, cfg interface{}, result gjson.Result, 
 func (p *JsonParser) getSelectionAttr(key string, cfg map[string]interface{}, result gjson.Result) interface{} {
 	var raw interface{}
 	raw = result.String()
+	raw = p.stripChars(key, raw, cfg)
 	raw = p.refineAttr(key, raw, cfg, result)
 	raw = p.refineByRe(raw, cfg)
 	return p.convertToType(raw, cfg)
@@ -151,7 +154,7 @@ func (p *JsonParser) handleMap(
 	}
 }
 
-func (p *JsonParser) getIndex(sel interface{}, result gjson.Result, index int) (rs gjson.Result) {
+func (p *JsonParser) getResultAtIndex(sel interface{}, result gjson.Result, index int) (rs gjson.Result) {
 	arr := result.Array()
 	if len(arr) > index {
 		return arr[index]
@@ -161,7 +164,7 @@ func (p *JsonParser) getIndex(sel interface{}, result gjson.Result, index int) (
 }
 
 func (p *JsonParser) getAllElems(key string, cfg map[string]interface{}, result gjson.Result) (iface interface{}, isComplexSel bool) {
-	sel := cfg[Locator]
+	sel := mustCfgLocator(cfg)
 	if sel == nil {
 		return result, false
 	}
@@ -215,23 +218,44 @@ func (p *JsonParser) handleStub(raw interface{}, result gjson.Result) (interface
 }
 
 func (p *JsonParser) getOneSelector(key string, sel interface{}, cfg map[string]interface{}, result gjson.Result) (iface interface{}) {
-	index, exist := cfg[Index]
+	index, existed := cfgIndex(cfg)
 	if index == nil {
-		if !exist {
-			return p.getIndex(sel, result, 0)
+		if !existed {
+			return p.getResultAtIndex(sel, result, 0)
 		}
 		return result.Array()
 	}
 
 	switch val := index.(type) {
-	case int:
-		return p.getIndex(sel, result, val)
+	case int, int64, uint64:
+		return p.getResultAtIndex(sel, result, cast.ToInt(val))
+	case string:
+		arr := strings.Split(val, ",")
+		if len(arr) != 2 {
+			panic(xpretty.Redf("range index format must be (a-b), but (%s is %T: %v)\n", key, val, val))
+		}
+		total := len(result.Array())
+		start, end := 0, total
+
+		if v := arr[0]; v != "" {
+			start = refineIndex(key, v, total)
+		}
+		if v := arr[1]; v != "" {
+			end = refineIndex(key, v, total)
+		}
+
+		var d []gjson.Result
+		for i := start; i < end; i++ {
+			d = append(d, result.Array()[i])
+		}
+		return d
 	case []interface{}:
 		var d []gjson.Result
 		for _, v := range val {
+			dump.P(v)
 			switch v := v.(type) {
-			case int:
-				r := p.getIndex(sel, result, v)
+			case int, uint64, int64:
+				r := p.getResultAtIndex(sel, result, cast.ToInt(v))
 				d = append(d, r)
 			default:
 				panic(xpretty.Redf("all indexes should be int, but (%s is %T: %v)\n", key, val, val))

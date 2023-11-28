@@ -72,6 +72,8 @@ const (
 
 	AttrIndex = "_attr_index"
 
+	AttrRegexp = "_attr_regexp"
+
 	// PostJoin is called when all attrs (as array) are parsed,
 	// it transforms the attrs array to string by joining the joiner
 	PostJoin = "_post_join"
@@ -90,6 +92,12 @@ const (
 	//  - i:int
 	//  - f:float
 	Type = "_type"
+)
+
+const (
+	LocatorAbbr    = "_l"
+	IndexAbbr      = "_i"
+	AttrRefineAbbr = "_ar"
 )
 
 const (

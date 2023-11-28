@@ -105,7 +105,7 @@ func (p *Parser) LoadConfig(ymlCfg ...[]byte) {
 	p.verifyKeys = p.config.Strings("__raw.verify_keys")
 }
 
-func (p *Parser) GetVerifyKeys() (arr []string) {
+func (p *Parser) VerifyKeys() (arr []string) {
 	return p.verifyKeys
 }
 
@@ -166,14 +166,18 @@ func (p *Parser) MustMandatoryFields(got, wanted []string) {
 // get raw info's value in config file
 //   - if args is empty, will return __raw's value
 //   - else return the first value in args
-func (p *Parser) GetRawInfo(args ...string) map[string]interface{} {
+func (p *Parser) RawInfo(args ...string) map[string]interface{} {
 	key := FirstOrDefaultArgs("__raw", args...)
 	raw := p.config.Data()[key]
 	return raw.(map[string]interface{})
 }
 
-func (p *Parser) GetParsedData() interface{} {
-	return p.ParsedData
+func (p *Parser) GetParsedData(args ...string) interface{} {
+	if len(args) == 0 {
+		return p.ParsedData
+	}
+
+	return p.ParsedData[args[0]]
 }
 
 func (p *Parser) PrettifyData(args ...interface{}) {
@@ -230,7 +234,7 @@ func (p *Parser) parseAttrs(parentKey, key string, config interface{}) {
 	switch cfg := config.(type) {
 	case map[string]interface{}:
 		if p.isLeaf(cfg) {
-			refine, b := cfg[AttrRefine]
+			refine, b := cfgAttrRefine(cfg)
 			if !b {
 				return
 			}
@@ -344,14 +348,16 @@ func (p *Parser) ToggleRankType(b bool) {
 }
 
 func (p *Parser) setRank(cfg map[string]interface{}) {
-	if cfg[Index] == nil {
+	idxGot := mustCfgIndex(cfg)
+
+	if idxGot == nil {
 		// when _index is nil, means use every item, so rank is same with offset
 		p.rank = p.rankOffset
 		p.rankOffset++
 		return
 	}
 
-	switch idx := cfg[Index].(type) {
+	switch idx := idxGot.(type) {
 	case int:
 		p.rank = idx
 	case []interface{}:
@@ -361,6 +367,8 @@ func (p *Parser) setRank(cfg map[string]interface{}) {
 			p.rank = p.rankOffset
 		}
 		p.rankOffset++
+	case string:
+		return
 	default:
 		panic(fmt.Sprintf("unsupported index for setRank %v", idx))
 	}
@@ -477,7 +485,7 @@ func (p *Parser) refineByRe(raw interface{}, cfg map[string]interface{}) interfa
 
 func (p *Parser) refineAttr(key string, raw interface{}, cfg map[string]interface{}, selection interface{}) interface{} {
 	attr := cfg[Attr]
-	refine := cfg[AttrRefine]
+	refine := mustCfgAttrRefine(cfg)
 	if refine == nil {
 		return raw
 	}

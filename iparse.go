@@ -2,17 +2,18 @@ package xparse
 
 type IDev interface {
 	ToggleDevMode(b bool)
-	GetVerifyKeys() []string
+	VerifyKeys() []string
 }
 
 type IConfig interface {
-	GetRawInfo(args ...string) map[string]interface{}
+	RawInfo(args ...string) map[string]interface{}
 }
 
 type IData interface {
 	BindPresetData(dat map[string]interface{})
+	AppendPresetData(data map[string]interface{})
 
-	GetParsedData() interface{}
+	GetParsedData(keys ...string) interface{}
 	// GetSliceData() []interface{}
 	DataAsJson(args ...interface{}) (string, error)
 	MustDataAsJson(args ...interface{}) string
@@ -59,6 +60,8 @@ type ParseOpts struct {
 	dataAsSlice bool
 
 	preset map[string]interface{}
+
+	rootKey string
 }
 
 type ParseOptFunc func(o *ParseOpts)
@@ -75,8 +78,15 @@ func WithDataAsSlice(b bool) ParseOptFunc {
 	}
 }
 
+// WithPresetData: used to bind page level data
 func WithPresetData(preset map[string]interface{}) ParseOptFunc {
 	return func(o *ParseOpts) {
 		o.preset = preset
+	}
+}
+
+func WithRootKey(s string) ParseOptFunc {
+	return func(o *ParseOpts) {
+		o.rootKey = s
 	}
 }

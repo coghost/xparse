@@ -60,6 +60,12 @@ const (
 )
 
 const (
+	LocatorAbbr    = "_l"
+	IndexAbbr      = "_i"
+	AttrRefineAbbr = "_ar"
+)
+
+const (
 	// JsonArrayRootLocator is a hard-coded symbol,
 	//
 	// since JSON is built on two structures:

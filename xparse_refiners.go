@@ -98,6 +98,12 @@ func (p *Parser) RefineCommaNumber(raw ...interface{}) interface{} {
 	return v
 }
 
+// RefineAttrByIndex
+// usage of attributes:
+//
+//   - _joiner: ","
+//   - _attr_refine: _attr_by_index
+//   - _attr_index: 0
 func (p *Parser) RefineAttrByIndex(raw ...interface{}) interface{} {
 	cfg := raw[1].(map[string]interface{})
 

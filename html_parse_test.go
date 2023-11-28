@@ -380,7 +380,6 @@ func (s *HtmlParserSuite) Test_0301DevMode() {
 		},
 	}
 	s.Equal(want, p.ParsedData)
-
 }
 
 func getIndeedHtmlData(fname string) (b1, b2 []byte) {
@@ -598,7 +597,7 @@ func (s *HtmlParserSuite) Test_0800() {
 	p := NewHtmlParser(rawHtml, rawYaml)
 	p.DoParse()
 
-	failed, all := Verify(p.MustDataAsJson(), p.GetVerifyKeys())
+	failed, all := Verify(p.MustDataAsJson(), p.VerifyKeys())
 
 	s.Empty(failed)
 	wantAll := map[string]map[int][]string{
@@ -619,7 +618,7 @@ func (s *HtmlParserSuite) Test_0801() {
 	p := NewHtmlParser(rawHtml, rawYaml)
 	p.DoParse()
 
-	failed, all := Verify(p.MustDataAsJson(), p.GetVerifyKeys())
+	failed, all := Verify(p.MustDataAsJson(), p.VerifyKeys())
 	// pp.Println(failed)
 	// pp.Println(all)
 
@@ -660,7 +659,7 @@ func (s *HtmlParserSuite) Test_0802() {
 	p := NewHtmlParser(rawHtml, rawYaml)
 	p.DoParse()
 
-	failed, all := Verify(p.MustDataAsJson(), p.GetVerifyKeys())
+	failed, all := Verify(p.MustDataAsJson(), p.VerifyKeys())
 
 	wantF := map[string][]string{
 		"jobs": {

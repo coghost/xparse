@@ -143,7 +143,7 @@ func (p *HtmlParser) parseDomNodes(
 }
 
 func (p *HtmlParser) getAllElems(key string, cfg map[string]interface{}, selection *goquery.Selection) (iface interface{}, isComplexSel bool) {
-	sel := cfg[Locator]
+	sel := mustCfgLocator(cfg)
 	if sel == nil {
 		return selection, isComplexSel
 	}
@@ -210,7 +210,7 @@ func (p *HtmlParser) getElemsOneByOne(key string, selArr []string, cfg map[strin
 
 func (p *HtmlParser) getOneSelector(key string, sel interface{}, cfg map[string]interface{}, selection *goquery.Selection) (iface interface{}, isComplexSel bool) {
 	elems := selection.Find(sel.(string))
-	index := cfg[Index]
+	index := mustCfgIndex(cfg)
 	isComplexSel = strings.Contains(sel.(string), ",")
 
 	iface = p.handleNullIndexOnly(key, isComplexSel, cfg, elems)
@@ -219,11 +219,7 @@ func (p *HtmlParser) getOneSelector(key string, sel interface{}, cfg map[string]
 	}
 
 	switch val := index.(type) {
-	case int:
-		iface = elems.Eq(cast.ToInt(val))
-	case int64:
-		iface = elems.Eq(cast.ToInt(val))
-	case uint64:
+	case int, int64, uint64:
 		iface = elems.Eq(cast.ToInt(val))
 	case string:
 		arr := strings.Split(val, ",")
@@ -232,10 +228,10 @@ func (p *HtmlParser) getOneSelector(key string, sel interface{}, cfg map[string]
 		}
 		start, end := 0, len(elems.Nodes)
 		if v := arr[0]; v != "" {
-			start = getIndex(key, v, len(elems.Nodes))
+			start = refineIndex(key, v, len(elems.Nodes))
 		}
 		if v := arr[1]; v != "" {
-			end = getIndex(key, v, len(elems.Nodes))
+			end = refineIndex(key, v, len(elems.Nodes))
 		}
 		var d []*goquery.Selection
 		for i := start; i < end; i++ {
@@ -246,11 +242,7 @@ func (p *HtmlParser) getOneSelector(key string, sel interface{}, cfg map[string]
 		var d []*goquery.Selection
 		for _, v := range val {
 			switch v := v.(type) {
-			case int:
-				d = append(d, elems.Eq(v))
-			case int64:
-				d = append(d, elems.Eq(cast.ToInt(v)))
-			case uint64:
+			case int, uint64, int64:
 				d = append(d, elems.Eq(cast.ToInt(v)))
 			default:
 				panic(xpretty.Redf("all indexes should be int, but (%s is %T: %v)\n", key, val, val))
@@ -264,18 +256,6 @@ func (p *HtmlParser) getOneSelector(key string, sel interface{}, cfg map[string]
 	return
 }
 
-func getIndex(key string, intStr string, total int) int {
-	end, err := cast.ToIntE(intStr)
-	if err != nil {
-		panic(xpretty.Redf("range index must be number, but (%s is %T: %v)", key, intStr, intStr))
-	}
-	if end < 0 {
-		end += total
-	}
-
-	return end
-}
-
 func (p *HtmlParser) handleNullIndexOnly(key string, isComplexSel bool, cfg map[string]interface{}, elems *goquery.Selection) interface{} {
 	// index has 4 types:
 	//  1. without index equal with 3(index:0)
@@ -283,7 +263,7 @@ func (p *HtmlParser) handleNullIndexOnly(key string, isComplexSel bool, cfg map[
 	//  3. index: 0
 	//  4. index: [0, 1, ...]
 	// if index existed, just return nil
-	index, existed := cfg[Index]
+	index, existed := cfgIndex(cfg)
 	if index != nil {
 		return nil
 	}

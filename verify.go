@@ -18,7 +18,7 @@ func Verify(rawJson string, keys []string, opts ...VerifyOptFunc) (failed map[st
 	sym := "┃"
 	opt := VerifyOpts{level: VerifyPrintAll, stubKey: _defaultStubKey, color: true}
 	bindVerifyOpts(&opt, opts...)
-	xpretty.SetNoColor(opt.color)
+	xpretty.SetNoColor(!opt.color)
 
 	failed = make(map[string][]string)
 	root := gjson.Parse(rawJson)
@@ -91,6 +91,14 @@ func Verify(rawJson string, keys []string, opts ...VerifyOptFunc) (failed map[st
 				if v == "" {
 					colorize = xpretty.Redfu
 					failed[wantStub] = append(failed[wantStub], fmt.Sprintf("%d:%s", rank, abbrKey))
+				}
+
+				if opt.level == VerifyPrintNone {
+					continue
+				}
+
+				if opt.level == VerifyPrintMissed && v != "" {
+					continue
 				}
 
 				output := colorize("%3d.\t%s %s: %s", rank, sym, abbrKey, v)

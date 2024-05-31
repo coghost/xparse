@@ -71,15 +71,17 @@ func WithHintType(i int) RefOptFunc {
 	}
 }
 
-func prompt(any interface{}, mtd_name, MtdName string, opts ...RefOptFunc) {
+//nolint:forbidigo,mnd,stylecheck
+func prompt(iface interface{}, mtd_name, mtdName string, opts ...RefOptFunc) {
 	opt := RefOpts{}
 	bindRefOpts(&opt, opts...)
 
-	tp := fmt.Sprintf("%T", any)
-	arr := strings.Split(tp, ".")
-	tp = arr[len(arr)-1]
+	prmType := fmt.Sprintf("%T", iface)
+	arr := strings.Split(prmType, ".")
+	prmType = arr[len(arr)-1]
 
-	hint := hint1
+	hint := ""
+
 	switch opt.hintType {
 	case 2:
 		hint = hint2
@@ -87,36 +89,39 @@ func prompt(any interface{}, mtd_name, MtdName string, opts ...RefOptFunc) {
 		hint = hint1
 	}
 
-	fmt.Println(xpretty.Redf(`Cannot find Refiner: (%s or %s)`, mtd_name, MtdName))
+	fmt.Println(xpretty.Redf(`Cannot find Refiner: (%s or %s)`, mtd_name, mtdName))
 	fmt.Println(xpretty.Redf(`Please add following method:`))
-	fmt.Println(xpretty.Greenf(hint, MtdName, mtd_name, tp, strings.Repeat("-", 32)))
-	fmt.Println(xpretty.Yellowf(hintFn, MtdName, mtd_name, tp, strings.Repeat("-", 32)))
+	fmt.Println(xpretty.Greenf(hint, mtdName, mtd_name, prmType, strings.Repeat("-", 32)))
+	fmt.Println(xpretty.Yellowf(hintFn, mtdName, mtd_name, prmType, strings.Repeat("-", 32)))
 
 	os.Exit(0)
 }
 
 // UpdateRefiners binds all refiners to parser
-func UpdateRefiners(p interface{}, opts ...RefOptFunc) {
+func UpdateRefiners(parser interface{}, opts ...RefOptFunc) {
 	opt := RefOpts{hintType: 1}
 	bindRefOpts(&opt, opts...)
 
-	Invoke(p, "Scan")
+	Invoke(parser, "Scan")
 
-	attrs := GetField(p, "AttrToBeRefined").Interface().([]string)
+	attrs, _ := GetField(parser, "AttrToBeRefined").Interface().([]string)
 	attrs = append(attrs, opt.methods...)
 
-	bindRefiners(p, attrs, opts...)
+	bindRefiners(parser, attrs, opts...)
 }
 
-func bindRefiners(p interface{}, attrs []string, opts ...RefOptFunc) {
-	refiners := GetField(p, "Refiners").Interface().(map[string]func(raw ...interface{}) interface{})
+func bindRefiners(parser interface{}, attrs []string, opts ...RefOptFunc) {
+	refiners, _ := GetField(parser, "Refiners").Interface().(map[string]func(raw ...interface{}) interface{})
 
+	//nolint:stylecheck
 	for _, mtd_name := range attrs {
-		MtdName := strcase.ToCamel(mtd_name)
-		method := GetMethod(p, MtdName)
+		mtdName := strcase.ToCamel(mtd_name)
+		method := GetMethod(parser, mtdName)
+
 		if funk.IsEmpty(method) {
-			prompt(p, mtd_name, MtdName, opts...)
+			prompt(parser, mtd_name, mtdName, opts...)
 		}
-		refiners[MtdName] = method.Interface().(func(raw ...interface{}) interface{})
+
+		refiners[mtdName], _ = method.Interface().(func(raw ...interface{}) interface{})
 	}
 }

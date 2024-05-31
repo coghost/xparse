@@ -14,14 +14,14 @@ const (
 	_defaultStubKey = "jobs"
 )
 
-func Verify(rawJson string, keys []string, opts ...VerifyOptFunc) (failed map[string][]string, allResp map[string]map[int][]string) {
+func Verify(rawJSON string, keys []string, opts ...VerifyOptFunc) (failed map[string][]string, allResp map[string]map[int][]string) {
 	sym := "┃"
 	opt := VerifyOpts{level: VerifyPrintAll, stubKey: _defaultStubKey, color: true}
 	bindVerifyOpts(&opt, opts...)
 	xpretty.SetNoColor(!opt.color)
 
 	failed = make(map[string][]string)
-	root := gjson.Parse(rawJson)
+	root := gjson.Parse(rawJSON)
 
 	// get the stubKeys: keys directly in the root node
 	stubKeys := make(map[string][]int)
@@ -33,11 +33,11 @@ func Verify(rawJson string, keys []string, opts ...VerifyOptFunc) (failed map[st
 
 	// first go through the keys to be verified to get all stub keys with its items' ranks
 	for _, key := range keys {
-		k := strings.Split(key, ".")[0]
+		baseKey := strings.Split(key, ".")[0]
 
 		// if there's no dot found, we'll add the stub key to keys
 		if !strings.Contains(key, ".") {
-			k = opt.stubKey
+			baseKey = opt.stubKey
 			key = opt.stubKey + "." + key
 		}
 
@@ -45,18 +45,19 @@ func Verify(rawJson string, keys []string, opts ...VerifyOptFunc) (failed map[st
 			key = opt.stubKey + ".#." + strings.Split(key, ".")[1]
 		}
 
-		k = fmt.Sprintf("%s.#.rank", k)
+		baseKey = fmt.Sprintf("%s.#.rank", baseKey)
 
 		// same stub key will be handled only once
-		if _, b := stubKeys[k]; !b {
-			for _, v := range root.Get(k).Array() {
-				stubKeys[k] = append(stubKeys[k], cast.ToInt(v.Int()))
+		if _, b := stubKeys[baseKey]; !b {
+			for _, v := range root.Get(baseKey).Array() {
+				stubKeys[baseKey] = append(stubKeys[baseKey], cast.ToInt(v.Int()))
 			}
-			allResults[k] = make(map[int][]string)
+
+			allResults[baseKey] = make(map[int][]string)
 		}
 
-		getKeyValAsArray(root, key, stubKeys[k], allResults[k])
-		grpKeys[k] = append(grpKeys[k], key)
+		getKeyValAsArray(root, key, stubKeys[baseKey], allResults[baseKey])
+		grpKeys[baseKey] = append(grpKeys[baseKey], key)
 	}
 
 	for stk, ranks := range stubKeys {
@@ -66,7 +67,7 @@ func Verify(rawJson string, keys []string, opts ...VerifyOptFunc) (failed map[st
 		var arr []string
 
 		if len(stubKeys) > 1 {
-			v := xpretty.Cyanf("%[2]s*\n%[1]s", strings.Repeat("-", 32), wanted)
+			v := xpretty.Cyanf("%[2]s*\n%[1]s", strings.Repeat("-", 32), wanted) //nolint:mnd
 			arr = append(arr, v)
 		}
 
@@ -79,39 +80,53 @@ func Verify(rawJson string, keys []string, opts ...VerifyOptFunc) (failed map[st
 		for _, rank := range ranks {
 			res := results[rank]
 
-			for i, v := range res {
+			for i, resVal := range res {
 				grpKey := gks[i]
 				if !strings.HasPrefix(grpKey, wanted) {
 					continue
 				}
 
-				abbrKey := strings.ReplaceAll(grpKey, fmt.Sprintf("%s#.", wanted), "")
+				subKey := strings.ReplaceAll(grpKey, fmt.Sprintf("%s#.", wanted), "")
 
-				colorize := xpretty.Greenf
-				if v == "" {
-					colorize = xpretty.Redfu
-					failed[wantStub] = append(failed[wantStub], fmt.Sprintf("%d:%s", rank, abbrKey))
+				output := formatOutput(resVal, failed, wantStub, rank, subKey, opt, sym, i)
+				if output != "" {
+					arr = append(arr, output)
 				}
-
-				if opt.level == VerifyPrintNone {
-					continue
-				}
-
-				if opt.level == VerifyPrintMissed && v != "" {
-					continue
-				}
-
-				output := colorize("%3d.\t%s %s: %s", rank, sym, abbrKey, v)
-				if i != 0 {
-					output = fmt.Sprintf("%3s \t", "") + colorize("%s %s: %s", sym, abbrKey, v)
-				}
-				arr = append(arr, output)
 			}
 		}
-		fmt.Println(strings.Join(arr, "\n"))
+
+		_, _ = xpretty.Println(strings.Join(arr, "\n"))
 	}
 
 	return failed, allResp
+}
+
+func formatOutput(resVal string, failed map[string][]string,
+	wantStub string, rank int,
+	abbrKey string, opt VerifyOpts,
+	sym string, index int,
+) string {
+	colorize := xpretty.Greenf
+	if resVal == "" {
+		colorize = xpretty.Redfu
+
+		failed[wantStub] = append(failed[wantStub], fmt.Sprintf("%d:%s", rank, abbrKey))
+	}
+
+	if opt.level == VerifyPrintNone {
+		return ""
+	}
+
+	if opt.level == VerifyPrintMissed && resVal != "" {
+		return ""
+	}
+
+	output := colorize("%3d.\t%s %s: %s", rank, sym, abbrKey, resVal)
+	if index != 0 {
+		output = fmt.Sprintf("%3s \t", "") + colorize("%s %s: %s", sym, abbrKey, resVal)
+	}
+
+	return output
 }
 
 func getKeyValAsArray(root gjson.Result, key string, indexes []int, results map[int][]string) {
@@ -120,6 +135,7 @@ func getKeyValAsArray(root gjson.Result, key string, indexes []int, results map[
 		for i := range indexes {
 			results[i] = append(results[i], "")
 		}
+
 		return
 	}
 

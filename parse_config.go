@@ -5,6 +5,7 @@ import (
 	"github.com/spf13/cast"
 )
 
+// mustCfgLocator must get the locator config
 func mustCfgLocator(cfg map[string]interface{}) interface{} {
 	return must(cfgLocator, cfg)
 }
@@ -13,6 +14,7 @@ func cfgLocator(cfg map[string]interface{}) (interface{}, bool) {
 	return getConfig(cfg, Locator, LocatorAbbr)
 }
 
+// mustCfgIndex must get _index's config
 func mustCfgIndex(cfg map[string]interface{}) interface{} {
 	return must(cfgIndex, cfg)
 }
@@ -21,6 +23,7 @@ func cfgIndex(cfg map[string]interface{}) (interface{}, bool) {
 	return getConfig(cfg, Index, IndexAbbr)
 }
 
+// mustCfgAttrRefine must get _attr_refine's config
 func mustCfgAttrRefine(cfg map[string]interface{}) interface{} {
 	return must(cfgAttrRefine, cfg)
 }
@@ -36,6 +39,7 @@ func getConfig(cfg map[string]interface{}, keys ...string) (interface{}, bool) {
 			return sel, true
 		}
 	}
+
 	return nil, false
 }
 
@@ -44,6 +48,7 @@ func refineIndex(key string, intStr string, total int) int {
 	if err != nil {
 		panic(xpretty.Redf("range index must be number, but (%s is %T: %v)", key, intStr, intStr))
 	}
+
 	if end < 0 {
 		end += total
 	}

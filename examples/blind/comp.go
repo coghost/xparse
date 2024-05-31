@@ -5,19 +5,18 @@ import (
 	"strings"
 
 	"github.com/coghost/xparse"
-	"github.com/coghost/xutil"
 	"github.com/thoas/go-funk"
 	"github.com/ungerik/go-dry"
 )
 
 type BasicParser struct {
-	*xparse.HtmlParser
+	*xparse.HTMLParser
 }
 
 func NewBasicParser(site int, raw []byte, ymlFile string, opts ...OptFunc) (cp *BasicParser, err error) {
 	ymlArr := getYamlConfigs(ymlFile, opts...)
 	p := &BasicParser{
-		xparse.NewHtmlParser(raw, ymlArr...),
+		xparse.NewHTMLParser(raw, ymlArr...),
 	}
 	p.PID = fmt.Sprintf("%d", site)
 
@@ -57,5 +56,5 @@ func (p *BasicParser) RefineReviews(raw ...interface{}) interface{} {
 	txt = p.GetStrBySplitAtIndex(txt, "(", 1)
 	txt = strings.ReplaceAll(txt, ",", "")
 
-	return xutil.MustCharToNum(txt)
+	return xparse.MustCharToNum(txt)
 }

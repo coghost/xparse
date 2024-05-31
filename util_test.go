@@ -9,7 +9,7 @@ import (
 
 type UtilSuite struct {
 	suite.Suite
-	rawJson string
+	rawJSON string
 }
 
 func TestUtil(t *testing.T) {
@@ -17,7 +17,7 @@ func TestUtil(t *testing.T) {
 }
 
 func (s *UtilSuite) SetupSuite() {
-	s.rawJson = `
+	s.rawJSON = `
 	{
 		"name": {"first": "Tom", "last": "Anderson"},
 		"age":37,
@@ -38,7 +38,8 @@ func (s *UtilSuite) TearDownSuite() {
 
 func (s *UtilSuite) Test01_GetKeys() {
 	dat := make(map[string]interface{})
-	Structify(s.rawJson, &dat)
+	err := Structify(s.rawJSON, &dat)
+	s.Nil(err)
 	// keys := GetKeys(dat["friends"], "friends")
 
 	var all []string
@@ -51,11 +52,11 @@ func (s *UtilSuite) Test02_CutStr() {
 	raw := "a,b,c,d,e"
 	v, b := GetStrBySplit(raw, ",", 6)
 	s.Equal("e", v)
-	s.Equal(true, b)
+	s.True(b)
 
 	v, b = GetStrBySplit(raw, ",", -1)
 	s.Equal("e", v)
-	s.Equal(true, b)
+	s.True(b)
 }
 
 func (s *UtilSuite) Test03_load() {
@@ -69,7 +70,7 @@ func (s *UtilSuite) Test03_load() {
 			"language": []interface{}{
 				"en",
 			},
-			"site":     895,
+			"site":     uint64(895),
 			"site_url": "https://www.jobisjob.ch/",
 			"test_keys": []interface{}{
 				"jobs.*",

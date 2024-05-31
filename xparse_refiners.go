@@ -21,12 +21,13 @@ func (p *Parser) RefineUrl(raw ...interface{}) interface{} {
 
 func (p *Parser) EnrichUrl(raw ...interface{}) interface{} {
 	domain := p.config.String("__raw.site_url")
-	uri := EnrichUrl(domain, raw[0])
+	uri := EnrichURL(domain, raw[0])
+
 	return uri
 }
 
 func (p *Parser) ToFloat(raw ...interface{}) interface{} {
-	return ToFixed(cast.ToFloat64(raw[0]), 2)
+	return ToFixed(cast.ToFloat64(raw[0]), _precision)
 }
 
 func (p *Parser) BindRank(raw ...interface{}) interface{} {
@@ -38,7 +39,9 @@ func (p *Parser) BindRank(raw ...interface{}) interface{} {
 //   - 1. strings.TrimSpace
 //   - 2. strings.Join(strings.Fields(s), " ")
 func (p *Parser) TrimByFields(raw ...interface{}) interface{} {
-	s := strings.TrimSpace(raw[0].(string))
+	rawStr, _ := raw[0].(string)
+	s := strings.TrimSpace(rawStr)
+
 	return strings.Join(strings.Fields(s), " ")
 }
 
@@ -72,14 +75,17 @@ func (p *Parser) GetStrBySplitAtIndex(raw interface{}, sep string, index int) st
 
 func (p *Parser) GetStrBySplit(raw interface{}, sep string, offset int, withSep bool) string {
 	s := cast.ToString(raw)
-	v, b := GetStrBySplit(s, sep, offset)
+
+	val, b := GetStrBySplit(s, sep, offset)
 	if !b {
 		return s
 	}
+
 	if withSep {
-		return sep + v
+		return sep + val
 	}
-	return v
+
+	return val
 }
 
 func (p *Parser) RefineDotNumber(raw ...interface{}) interface{} {
@@ -87,6 +93,7 @@ func (p *Parser) RefineDotNumber(raw ...interface{}) interface{} {
 	if err != nil {
 		return raw
 	}
+
 	return v
 }
 
@@ -95,6 +102,7 @@ func (p *Parser) RefineCommaNumber(raw ...interface{}) interface{} {
 	if err != nil {
 		return raw
 	}
+
 	return v
 }
 
@@ -105,20 +113,21 @@ func (p *Parser) RefineCommaNumber(raw ...interface{}) interface{} {
 //   - _attr_refine: _attr_by_index
 //   - _attr_index: 0
 func (p *Parser) RefineAttrByIndex(raw ...interface{}) interface{} {
-	cfg := raw[1].(map[string]interface{})
-
+	cfg, _ := raw[1].(map[string]interface{})
 	idx := 0
 	idxTxt, b := cfg[AttrIndex]
+
 	if b {
 		idx = cast.ToInt(idxTxt)
 	}
 
 	sep := AttrJoinerSep
 	if txt, b := cfg[AttrJoiner]; b {
-		sep = txt.(string)
+		sep, _ = txt.(string)
 	}
 
 	txt := p.GetStrBySplitAtIndex(raw[0], sep, idx)
 	txt = strings.TrimSpace(txt)
+
 	return txt
 }

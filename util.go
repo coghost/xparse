@@ -23,20 +23,26 @@ func PanicIfErr(err error) {
 	}
 }
 
+func PrintToStderr(format string, a ...any) {
+	layout := fmt.Sprintf("\033[31m%v\033[0m", format)
+	fmt.Fprintf(os.Stderr, layout, a)
+}
+
 func Yaml2Config(raw ...[]byte) (cf *config.Config) {
 	cf = config.New("")
 	cf.AddDriver(yamlv3.Driver)
 	err := cf.LoadSources(config.Yaml, raw[0], raw[1:]...)
 	PanicIfErr(err)
+
 	return cf
 }
 
-func EnrichUrl(domain string, raw interface{}) interface{} {
-	uri := raw.(string)
-	pu, err := url.Parse(uri)
+func EnrichURL(domain string, raw interface{}) interface{} {
+	uri, _ := raw.(string)
+	parsedURL, err := url.Parse(uri)
 	PanicIfErr(err)
 
-	if pu.Scheme != "" {
+	if parsedURL.Scheme != "" {
 		return raw
 	}
 
@@ -47,8 +53,7 @@ func EnrichUrl(domain string, raw interface{}) interface{} {
 	base, err := url.Parse(domain)
 	PanicIfErr(err)
 
-	uri = base.ResolveReference(pu).String()
-	return uri
+	return base.ResolveReference(parsedURL).String()
 }
 
 // GetProjectHome
@@ -60,6 +65,7 @@ func GetProjectHome(projectName string) string {
 	pwd, _ := os.Getwd()
 	arr := strings.Split(pwd, projectName)
 	home := filepath.Join(arr[0], projectName)
+
 	return home
 }
 
@@ -67,23 +73,25 @@ func GetProjectHome(projectName string) string {
 //
 // return the first args value, if args not empty
 // else return default value
-func FirstOrDefaultArgs[T Basic](dft T, args ...T) (val T) {
-	val = dft
+func FirstOrDefaultArgs[T Basic](dft T, args ...T) T { //nolint:ireturn
+	val := dft
 	if len(args) > 0 {
 		val = args[0]
 	}
+
 	return val
 }
 
-func Insert[T Basic](a []T, index int, value T) []T {
+func Insert[T Basic](arr []T, index int, value T) []T {
 	// nil or empty slice or after last element
-	if len(a) == index {
-		return append(a, value)
+	if len(arr) == index {
+		return append(arr, value)
 	}
 	// index < len(a)
-	a = append(a[:index+1], a[index:]...)
-	a[index] = value
-	return a
+	arr = append(arr[:index+1], arr[index:]...)
+	arr[index] = value
+
+	return arr
 }
 
 // GetStrBySplit split raw str with separator and join from offset
@@ -102,14 +110,18 @@ func GetStrBySplit(raw string, sep string, offset int) (string, bool) {
 	if strings.Contains(raw, sep) {
 		arr := strings.Split(raw, sep)
 		i := offset
+
 		if n := len(arr) - 1; n < offset {
 			i = n
 		}
+
 		if offset < 0 {
 			i = len(arr) + offset
 		}
+
 		return strings.Join(arr[i:], sep), true
 	}
+
 	return raw, false
 }
 
@@ -125,13 +137,13 @@ func GetMapKeys(all *[]string, data interface{}, args ...string) {
 	prefix := FirstOrDefaultArgs("", args...)
 
 	var dat map[string]interface{}
-	switch d := data.(type) {
+	switch datType := data.(type) {
 	case []map[string]interface{}:
-		dat = d[0]
+		dat = datType[0]
 	case map[string]interface{}:
-		dat = d
+		dat = datType
 	case []interface{}:
-		switch d1 := d[0].(type) {
+		switch d1 := datType[0].(type) {
 		case map[string]interface{}:
 			dat = d1
 		default:
@@ -139,14 +151,15 @@ func GetMapKeys(all *[]string, data interface{}, args ...string) {
 			return
 		}
 	default:
-		panic(fmt.Sprintf("not supported type found: (%T)", d))
+		panic(fmt.Sprintf("not supported type found: (%T)", datType))
 	}
 
 	for key, v := range dat {
 		if prefix != "" {
 			key = prefix + "." + key
 		}
-		switch t := v.(type) {
+
+		switch vType := v.(type) {
 		case nil:
 			// json.null
 			*all = append(*all, key)
@@ -161,11 +174,11 @@ func GetMapKeys(all *[]string, data interface{}, args ...string) {
 			*all = append(*all, key)
 		case map[string]interface{}:
 			// json.Object
-			GetMapKeys(all, t, key)
+			GetMapKeys(all, vType, key)
 		case []interface{}:
 			// json.array
 			// all = append(all, key)
-			GetMapKeys(all, t, key)
+			GetMapKeys(all, vType, key)
 		default:
 			/** following are non json type **/
 			*all = append(*all, key)
@@ -173,21 +186,23 @@ func GetMapKeys(all *[]string, data interface{}, args ...string) {
 	}
 }
 
-func Invoke(any interface{}, name string, args ...interface{}) []reflect.Value {
+func Invoke(iface interface{}, name string, args ...interface{}) []reflect.Value {
 	inputs := make([]reflect.Value, len(args))
 	for i := range args {
 		inputs[i] = reflect.ValueOf(args[i])
 	}
-	v := reflect.ValueOf(any).MethodByName(name)
+
+	v := reflect.ValueOf(iface).MethodByName(name)
+
 	return v.Call(inputs)
 }
 
-func GetMethod(any interface{}, key string) reflect.Value {
-	return reflect.ValueOf(any).MethodByName(key)
+func GetMethod(iface interface{}, key string) reflect.Value {
+	return reflect.ValueOf(iface).MethodByName(key)
 }
 
-func GetField(any interface{}, key string) reflect.Value {
-	return reflect.ValueOf(any).Elem().FieldByName(key)
+func GetField(iface interface{}, key string) reflect.Value {
+	return reflect.ValueOf(iface).Elem().FieldByName(key)
 }
 
 // Stringify returns a string representation
@@ -196,6 +211,7 @@ func Stringify(data interface{}) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	return string(b), nil
 }
 
@@ -204,15 +220,17 @@ func Structify(data string, value interface{}) error {
 	return json.Unmarshal([]byte(data), value)
 }
 
-// JoinUrlWithRef joins a URI reference from a base URL
-func JoinUrlWithRef(baseUrl, refUrl string) (*url.URL, error) {
-	u, err := url.Parse(refUrl)
+// JoinURLlWithRef joins a URI reference from a base URL
+func JoinURLlWithRef(baseURL, refURL string) (*url.URL, error) {
+	parsedURL, err := url.Parse(refURL)
 	if err != nil {
 		return nil, err
 	}
-	base, err := url.Parse(baseUrl)
+
+	base, err := url.Parse(baseURL)
 	if err != nil {
 		return nil, err
 	}
-	return base.ResolveReference(u), nil
+
+	return base.ResolveReference(parsedURL), nil
 }

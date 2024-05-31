@@ -13,6 +13,22 @@ const (
 	Index = "_index"
 
 	// Locator is the path/selector we used to find elem we want
+	//
+	// Supported types:
+	//  > string:
+	//   _locator: string
+	//
+	//  > list:
+	//   _locator:
+	//     - div.001
+	//     - div.002
+	//     - div.003
+	//
+	//  > map:
+	//   _locator:
+	//     key1: div.001
+	//     key2: div.002
+	//     key3: div.003
 	Locator = "_locator"
 
 	// ExtractPrevElem
@@ -66,7 +82,7 @@ const (
 )
 
 const (
-	// JsonArrayRootLocator is a hard-coded symbol,
+	// JSONArrayRootLocator is a hard-coded symbol,
 	//
 	// since JSON is built on two structures:
 	//   - A collection of name/value pairs.
@@ -74,7 +90,7 @@ const (
 	//
 	// and there is no root locator for ordered list,
 	// so we use this symbol when json file is with ordered list of values like: `[{...}, {...}]`
-	JsonArrayRootLocator = "*/*"
+	JSONArrayRootLocator = "*/*"
 )
 
 const (
@@ -129,7 +145,11 @@ const (
 	AttrTypeB = "b"
 	AttrTypeF = "f"
 	AttrTypeI = "i"
+
 	// time
-	AttrTypeT  = "t"
+
+	// AttrTypeT quick mode
+	AttrTypeT = "t"
+	// AttrTypeT1 search mode, a bit slower
 	AttrTypeT1 = "t1"
 )

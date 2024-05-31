@@ -17,6 +17,11 @@ const (
 	MinInt  = -MaxInt - 1
 )
 
+const (
+	_roundSignBase = 0.5
+	_precision     = 2
+)
+
 var ErrorNoNumbers = errors.New("no number found")
 
 type NumOpts struct {
@@ -47,39 +52,41 @@ func bindOpts(opt *NumOpts, opts ...NumOptFunc) {
 // CharToNum extract `number+Chars` from source str
 //
 //	the extracted value could be float value, so convert to float first, then return int by default
-func CharToNum(s string, opts ...NumOptFunc) (v interface{}, e error) {
+func CharToNum(rawStr string, opts ...NumOptFunc) (v interface{}, e error) {
 	opt := NumOpts{chars: ".", dft: 1}
 	bindOpts(&opt, opts...)
 
 	a := "[0-9" + opt.chars + "]+"
 	re := regexp.MustCompile(a)
-	c := re.FindAllString(s, -1)
-	r := strings.Join(c, "")
+	c := re.FindAllString(rawStr, -1)
+	joinStr := strings.Join(c, "")
 
-	if r == "" {
-		return r, ErrorNoNumbers
+	if joinStr == "" {
+		return joinStr, ErrorNoNumbers
 	}
 
 	switch opt.dft.(type) {
 	case int:
-		v, e := cast.ToFloat64E(r)
+		v, e := cast.ToFloat64E(joinStr)
 		if e != nil {
 			return nil, e
 		}
+
 		return cast.ToIntE(v)
 	case int64:
 		// v could be float value
-		v, e := cast.ToFloat64E(r)
+		v, e := cast.ToFloat64E(joinStr)
 		if e != nil {
 			return nil, e
 		}
+
 		return cast.ToInt64E(v)
 	case float32:
-		return cast.ToFloat32E(r)
+		return cast.ToFloat32E(joinStr)
 	case float64:
-		return cast.ToFloat64E(r)
+		return cast.ToFloat64E(joinStr)
 	default:
-		return cast.ToStringE(r)
+		return cast.ToStringE(joinStr)
 	}
 }
 
@@ -88,6 +95,7 @@ func MustCharToNum(s string, opts ...NumOptFunc) (v interface{}) {
 	if e != nil {
 		PanicIfErr(e)
 	}
+
 	return v
 }
 
@@ -97,6 +105,7 @@ func NumF64KMFromStr(str string, opts ...NumOptFunc) (i float64, b bool) {
 	if strings.Contains(strings.ToUpper(str), "K") {
 		unit = 1000.0
 	}
+
 	if strings.Contains(strings.ToUpper(str), "M") {
 		unit = 1000000.0
 	}
@@ -112,6 +121,7 @@ func NumF64KMFromStr(str string, opts ...NumOptFunc) (i float64, b bool) {
 	if v == nil {
 		return
 	}
+
 	return cast.ToFloat64(v) * unit, true
 }
 
@@ -124,17 +134,19 @@ func MustF64KMFromStr(str string, opts ...NumOptFunc) float64 {
 }
 
 func Round(num float64) int {
-	return int(num + math.Copysign(0.5, num))
+	return int(num + math.Copysign(_roundSignBase, num))
 }
 
 func ToFixed(num float64, precision ...int) float64 {
-	p := FirstOrDefaultArgs(2, precision...)
-	output := math.Pow(10, float64(p))
+	p := FirstOrDefaultArgs(_precision, precision...)
+	output := math.Pow(10, float64(p)) //nolint:mnd
+
 	return float64(Round(num*output)) / output
 }
 
 func ToFixedStr(num float64, precision ...int) string {
-	p := FirstOrDefaultArgs(2, precision...)
+	p := FirstOrDefaultArgs(_precision, precision...)
 	output := ToFixed(num, p)
+
 	return cast.ToString(output)
 }

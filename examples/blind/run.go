@@ -4,7 +4,6 @@ import (
 	"path/filepath"
 
 	"github.com/coghost/xparse"
-	"github.com/coghost/xutil"
 	"github.com/gookit/goutil/fsutil"
 )
 
@@ -14,7 +13,7 @@ func main() {
 	ps, err := NewBasicParser(341, raw, filepath.Join(home, "/examples/blind/asset/341.yaml"))
 	xparse.UpdateRefiners(ps)
 
-	xutil.PanicIfErr(err)
+	xparse.PanicIfErr(err)
 	ps.DoParse()
 	ps.PrettifyData()
 }

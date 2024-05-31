@@ -14,10 +14,9 @@ type IData interface {
 	AppendPresetData(data map[string]interface{})
 
 	GetParsedData(keys ...string) interface{}
-	// GetSliceData() []interface{}
-	DataAsJson(args ...interface{}) (string, error)
-	MustDataAsJson(args ...interface{}) string
-	PrettifyJsonData(args ...interface{})
+	DataAsJSON(args ...interface{}) (string, error)
+	MustDataAsJSON(args ...interface{}) string
+	PrettifyJSONData(args ...interface{}) error
 
 	DataAsYaml(args ...interface{}) (string, error)
 	MustDataAsYaml(args ...interface{}) string
@@ -40,17 +39,17 @@ type IParser interface {
 func PreParse(p IParser, preset map[string]interface{}) {
 }
 
-func DoParse(p IParser, opts ...ParseOptFunc) interface{} {
+func DoParse(parser IParser, opts ...ParseOptFunc) interface{} {
 	opt := &ParseOpts{}
 	bindParseOpts(opt, opts...)
 
-	p.BindPresetData(opt.preset)
-	p.ToggleDevMode(true)
-	UpdateRefiners(p)
-	p.DoParse()
-	p.PostDoParse()
+	parser.BindPresetData(opt.preset)
+	parser.ToggleDevMode(true)
+	UpdateRefiners(parser)
+	parser.DoParse()
+	parser.PostDoParse()
 
-	return p.GetParsedData()
+	return parser.GetParsedData()
 }
 
 func PostParse(p IParser) {

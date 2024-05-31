@@ -26,6 +26,10 @@ const (
 	_layerForOthers
 )
 
+const (
+	_rangeIndexLen = 2
+)
+
 type Parser struct {
 	sourceData []byte
 	sourceYaml [][]byte
@@ -57,15 +61,27 @@ type Parser struct {
 
 	// testKeys, only keys in testKeys will be parsed, and .rank is parsed by default
 	testKeys []string
+	// nestedKeysForCheckingTestKeys
+	//  > example(job.yaml):
+	//  -----
+	//   job:
+	//     datePosted:
+	//     address:
+	// 	     region:
+	//  -----
+	//
+	//  so the nestedKeys can be
+	//  - []
+	//  - ["job"]->["job", "datePosted"]->["job"]
+	//  - ["job"]->["job", "address"]->["job", "address", "region"]->["job", "address"]->["job"]
+	//  - []
+	nestedKeysForCheckingTestKeys []string
 
 	// verify keys, keys will be verified
 	verifyKeys []string
 
-	nestedKeys []string
-
-	// selectedKeys []string
-
-	// Refiners is a map of
+	// Refiners is a map of:
+	//
 	//  > string: func
 	//  - string is name we defined
 	//  - func has three params:
@@ -113,6 +129,7 @@ func (p *Parser) BindPresetData(dat map[string]interface{}) {
 	if dat == nil {
 		return
 	}
+
 	p.presetData = dat
 }
 
@@ -134,19 +151,21 @@ func (p *Parser) AppendPresetData(data map[string]interface{}) {
 	}
 
 	// try add parser unique id to data
-	_, b := data["site"]
-	if !b && p.PID != "" {
+	_, found := data["site"]
+	if !found && p.PID != "" {
 		data["site"] = p.PID
 	}
 
 	// try add p.PID to external_id
-	v, b := data["external_id"]
-	if !b {
+	v, found := data["external_id"]
+	if !found {
 		return
 	}
-	s := v.(string)
+
+	s, _ := v.(string)
 	pre := p.PID + "_"
-	if b && p.PID != "" && s != "" && !strings.HasPrefix(s, pre) {
+
+	if found && p.PID != "" && s != "" && !strings.HasPrefix(s, pre) {
 		data["external_id"] = p.PID + "_" + s
 	}
 }
@@ -155,6 +174,7 @@ func (p *Parser) MustMandatoryFields(got, wanted []string) {
 	if len(got) == 0 || len(wanted) == 0 {
 		return
 	}
+
 	a, _ := funk.DifferenceString(got, wanted)
 	if len(a) != 0 {
 		log.Fatal().Msg(xpretty.Yellowf("unwanted keys %q found, please check if typo or missing", a))
@@ -169,7 +189,9 @@ func (p *Parser) MustMandatoryFields(got, wanted []string) {
 func (p *Parser) RawInfo(args ...string) map[string]interface{} {
 	key := FirstOrDefaultArgs("__raw", args...)
 	raw := p.config.Data()[key]
-	return raw.(map[string]interface{})
+	rawInfo, _ := raw.(map[string]interface{})
+
+	return rawInfo
 }
 
 func (p *Parser) GetParsedData(args ...string) interface{} {
@@ -180,41 +202,45 @@ func (p *Parser) GetParsedData(args ...string) interface{} {
 	return p.ParsedData[args[0]]
 }
 
-func (p *Parser) PrettifyData(args ...interface{}) {
-	xpretty.PrettyMap(p.ParsedData)
+func (p *Parser) PrettifyData(args ...interface{}) error {
+	return xpretty.PrettyMap(p.ParsedData)
 }
 
-func (p *Parser) PrettifyJsonData(args ...interface{}) {
-	xpretty.PrettyJson(p.MustDataAsJson(args...))
+func (p *Parser) PrettifyJSONData(args ...interface{}) error {
+	return xpretty.PrettyJson(p.MustDataAsJSON(args...))
 }
 
 // DataAsJson returns a string of args[0] or p.ParsedData and error
-func (p *Parser) DataAsJson(args ...interface{}) (string, error) {
+func (p *Parser) DataAsJSON(args ...interface{}) (string, error) {
 	if len(args) != 0 {
 		return Stringify(args[0])
-	} else {
-		return Stringify(p.ParsedData)
 	}
+
+	return Stringify(p.ParsedData)
 }
 
-func (p *Parser) MustDataAsJson(args ...interface{}) string {
-	raw, err := p.DataAsJson(args...)
+func (p *Parser) MustDataAsJSON(args ...interface{}) string {
+	raw, err := p.DataAsJSON(args...)
 	PanicIfErr(err)
+
 	return raw
 }
 
 func (p *Parser) DataAsYaml(args ...interface{}) (string, error) {
-	raw, err := p.DataAsJson(args...)
+	raw, err := p.DataAsJSON(args...)
 	if err != nil {
 		return raw, err
 	}
+
 	v, e := yaml.JSONToYAML([]byte(raw))
+
 	return string(v), e
 }
 
 func (p *Parser) MustDataAsYaml(args ...interface{}) string {
 	raw, err := p.DataAsYaml(args...)
 	PanicIfErr(err)
+
 	return raw
 }
 
@@ -224,13 +250,13 @@ func (p *Parser) Scan() {
 		case map[string]interface{}:
 			p.parseAttrs("", key, cfgType)
 		default:
-			fmt.Println(xpretty.Redf(_nonMapHint, key, cfg))
+			xpretty.RedPrintf(_nonMapHint, key, cfg)
 			continue
 		}
 	}
 }
 
-func (p *Parser) parseAttrs(parentKey, key string, config interface{}) {
+func (p *Parser) parseAttrs(_ string, key string, config interface{}) {
 	switch cfg := config.(type) {
 	case map[string]interface{}:
 		if p.isLeaf(cfg) {
@@ -240,7 +266,7 @@ func (p *Parser) parseAttrs(parentKey, key string, config interface{}) {
 			}
 
 			attr := cfg[Attr]
-			name := p.getRefineMethodName(key, refine, attr)
+			name := p.convertAttrRefineToSnakeCaseName(key, refine, attr)
 			name = strcase.ToCamel(name)
 			p.AttrToBeRefined = append(p.AttrToBeRefined, name)
 			p.AttrToBeRefined = funk.UniqString(p.AttrToBeRefined)
@@ -263,54 +289,68 @@ func (p *Parser) DoParse() {}
 func (p *Parser) PostDoParse() {}
 
 func (p *Parser) popNestedKeys() {
-	if len(p.nestedKeys) == 0 {
+	if len(p.nestedKeysForCheckingTestKeys) == 0 {
 		return
 	}
-	p.nestedKeys = p.nestedKeys[:len(p.nestedKeys)-1]
+
+	p.nestedKeysForCheckingTestKeys = p.nestedKeysForCheckingTestKeys[:len(p.nestedKeysForCheckingTestKeys)-1]
 }
 
-func (p *Parser) checkNestedKeys(key string) bool {
-	if !strings.Contains(key, "__") {
-		p.nestedKeys = append(p.nestedKeys, key)
+const (
+	skippedKeySymbol = "__"
+)
+
+func (p *Parser) appendNestedKeys(key string) {
+	if strings.Contains(key, skippedKeySymbol) {
+		return
 	}
-	return true
+
+	p.nestedKeysForCheckingTestKeys = append(p.nestedKeysForCheckingTestKeys, key)
 }
 
-func (p *Parser) check(key string) bool {
+func (p *Parser) checkTestKeys(_ string) bool {
 	// len == 0, just return true
-	if len(p.nestedKeys) < 1 {
+	if len(p.nestedKeysForCheckingTestKeys) < 1 {
 		return true
 	}
 
-	nk := strings.Join(p.nestedKeys, ".")
+	nestedKey := strings.Join(p.nestedKeysForCheckingTestKeys, ".")
 	// len == 1, check if starts with nk or not
-	if len(p.nestedKeys) == 1 {
+	if len(p.nestedKeysForCheckingTestKeys) == 1 {
 		for _, tk := range p.testKeys {
-			if strings.HasPrefix(tk, nk) {
+			if strings.HasPrefix(tk, nestedKey) {
 				return true
 			}
 		}
+
 		return false
 	}
 
 	// len p.nestedKeys > 1
-	for _, tk := range p.testKeys {
-		b := strings.Contains(tk, ".*")
+	for _, testKey := range p.testKeys {
+		b := strings.Contains(testKey, ".*")
 		if b {
-			_tk := strings.ReplaceAll(tk, ".*", "")
-			if strings.HasPrefix(nk, _tk) {
+			got := p.checkKey(testKey, nestedKey)
+			if got {
 				return true
 			}
 		} else {
-			if strings.HasSuffix(nk, ".rank") {
+			if strings.HasSuffix(nestedKey, ".rank") {
 				return true
 			}
-			if nk == tk {
+
+			if nestedKey == testKey {
 				return true
 			}
 		}
 	}
+
 	return false
+}
+
+func (*Parser) checkKey(testKey string, nestedKey string) bool {
+	_tk := strings.ReplaceAll(testKey, ".*", "")
+	return strings.HasPrefix(nestedKey, _tk)
 }
 
 func (p *Parser) isRequiredKey(key string) (b bool) {
@@ -322,7 +362,7 @@ func (p *Parser) isRequiredKey(key string) (b bool) {
 		return true
 	}
 
-	if p.check(key) {
+	if p.checkTestKeys(key) {
 		return true
 	}
 
@@ -340,6 +380,7 @@ func (p *Parser) isLeaf(cfg map[string]interface{}) bool {
 			return false
 		}
 	}
+
 	return true
 }
 
@@ -354,6 +395,7 @@ func (p *Parser) setRank(cfg map[string]interface{}) {
 		// when _index is nil, means use every item, so rank is same with offset
 		p.rank = p.rankOffset
 		p.rankOffset++
+
 		return
 	}
 
@@ -366,6 +408,7 @@ func (p *Parser) setRank(cfg map[string]interface{}) {
 		} else {
 			p.rank = p.rankOffset
 		}
+
 		p.rankOffset++
 	case string:
 		return
@@ -395,9 +438,11 @@ func (p *Parser) convertToType(raw interface{}, cfg map[string]interface{}) inte
 }
 
 func (p *Parser) formatDate(raw interface{}, bySearch bool) interface{} {
-	if v := xdtm.GetDateTimeStr(raw.(string), xdtm.WithBySearch(bySearch)); v != "" {
+	rawStr, _ := raw.(string)
+	if v := xdtm.GetDateTimeStr(rawStr, xdtm.WithBySearch(bySearch)); v != "" {
 		return v
 	}
+
 	return raw
 }
 
@@ -406,6 +451,7 @@ func (p *Parser) TrimSpace(txt string, cfg map[string]interface{}) string {
 	if st == false {
 		return txt
 	}
+
 	return strings.TrimSpace(txt)
 }
 
@@ -418,31 +464,37 @@ func (p *Parser) stripChars(key string, raw interface{}, cfg map[string]interfac
 	}
 }
 
-func (p *Parser) stripStrings(key string, raw interface{}, cfg map[string]interface{}) interface{} {
+func (p *Parser) stripStrings(_ string, raw interface{}, cfg map[string]interface{}) interface{} {
+	rawStr, _ := raw.(string)
+
 	st := cfg[Strip]
 	if st == nil || st == true {
-		return strings.TrimSpace(raw.(string))
+		return strings.TrimSpace(rawStr)
 	}
 
-	switch v := st.(type) {
+	switch stripType := st.(type) {
 	case string:
-		return strings.ReplaceAll(raw.(string), v, "")
+		return strings.ReplaceAll(rawStr, stripType, "")
 	case []interface{}:
-		val := raw.(string)
-		for _, sub := range v {
-			val = strings.ReplaceAll(val, sub.(string), "")
+		val := rawStr
+
+		for _, sub := range stripType {
+			subStr, _ := sub.(string)
+			val = strings.ReplaceAll(val, subStr, "")
 		}
+
 		raw = val
 	}
+
 	return raw
 }
 
-func (p *Parser) isMethodExisted(mtd_name string) (rv reflect.Value, b bool) {
+func (p *Parser) isMethodExisted(snakeCaseName string) (rv reflect.Value, b bool) {
 	// automatically convert snake_case(which is written in yaml) to CamelCase or camelCase
 	// first check camelCase (private method preferred)
 	// if not found then check CamelCase
-	mtdName := strcase.ToLowerCamel(mtd_name)
-	MtdName := strcase.ToCamel(mtd_name)
+	mtdName := strcase.ToLowerCamel(snakeCaseName)
+	MtdName := strcase.ToCamel(snakeCaseName)
 
 	method := reflect.ValueOf(p).MethodByName(mtdName)
 	if funk.IsEmpty(method) {
@@ -451,22 +503,38 @@ func (p *Parser) isMethodExisted(mtd_name string) (rv reflect.Value, b bool) {
 			return
 		}
 	}
+
 	return method, true
 }
 
-func (p *Parser) getRefinerFn(mtd_name string) (func(raw ...interface{}) interface{}, bool) {
-	mtdName := strcase.ToLowerCamel(mtd_name)
-	MtdName := strcase.ToCamel(mtd_name)
+func (p *Parser) getRefinerFn(snakeCaseName string) (func(raw ...interface{}) interface{}, bool) {
+	mtdName := strcase.ToLowerCamel(snakeCaseName)
+	MtdName := strcase.ToCamel(snakeCaseName)
 
-	injectFn, b := p.Refiners[mtdName]
-	if !b {
-		injectFn, b = p.Refiners[MtdName]
-		if !b {
+	injectFn, found := p.Refiners[mtdName]
+	if !found {
+		injectFn, found = p.Refiners[MtdName]
+		if !found {
+			if fn, b := p.loadPreDefined(MtdName); b {
+				return fn, b
+			}
+
 			prompt(p, mtdName, MtdName)
 		}
 	}
 
-	return injectFn, b
+	return injectFn, found
+}
+
+func (p *Parser) loadPreDefined(mtdName string) (func(raw ...interface{}) interface{}, bool) {
+	switch mtdName {
+	case "BindRank":
+		return p.BindRank, true
+	case "EnrichUrl":
+		return p.EnrichUrl, true
+	default:
+		return nil, false
+	}
 }
 
 func (p *Parser) refineByRe(raw interface{}, cfg map[string]interface{}) interface{} {
@@ -475,27 +543,31 @@ func (p *Parser) refineByRe(raw interface{}, cfg map[string]interface{}) interfa
 		return raw
 	}
 
-	r, err := regexp.Compile(rgx.(string))
+	regex, err := regexp.Compile(rgx.(string))
 	if err != nil {
 		log.Error().Err(err).Interface("regexp", rgx).Msg("cannot compile regexp")
 	}
-	v := r.FindString(raw.(string))
-	return v
+
+	rawStr, _ := raw.(string)
+
+	return regex.FindString(rawStr)
 }
 
 func (p *Parser) refineAttr(key string, raw interface{}, cfg map[string]interface{}, selection interface{}) interface{} {
 	attr := cfg[Attr]
+
 	refine := mustCfgAttrRefine(cfg)
 	if refine == nil {
 		return raw
 	}
-	mtd_name := p.getRefineMethodName(key, refine, attr)
+
+	snakeCaseName := p.convertAttrRefineToSnakeCaseName(key, refine, attr)
 
 	// refiners from parser-defined is prior than pre-defined
-	injectFn, b := p.getRefinerFn(mtd_name)
+	injectFn, b := p.getRefinerFn(snakeCaseName)
 	if b {
 		// 1. with full config (*config.Config)
-		// TODO: add a new key like `__return_config`
+		// Not-Supported: add a new key like `__return_config`
 		//  - return injectFn(raw, p.config, selection)
 		// 2. only current config (map)
 		switch val := raw.(type) {
@@ -506,6 +578,7 @@ func (p *Parser) refineAttr(key string, raw interface{}, cfg map[string]interfac
 			for _, v := range val {
 				resp = append(resp, injectFn(v, cfg, selection))
 			}
+
 			return resp
 		default:
 			panic(fmt.Sprintf("not supported type %s: %T, %v", key, val, val))
@@ -513,20 +586,23 @@ func (p *Parser) refineAttr(key string, raw interface{}, cfg map[string]interfac
 	}
 
 	// pre-defined methods
-	method, ok := p.isMethodExisted(mtd_name)
+	method, ok := p.isMethodExisted(snakeCaseName)
 	if ok {
 		switch val := raw.(type) {
 		case string:
 			param := []reflect.Value{reflect.ValueOf(val), reflect.ValueOf(cfg), reflect.ValueOf(selection)}
 			res := method.Call(param)
+
 			return res[0].Interface()
 		case []string:
 			var resp []interface{}
+
 			for _, v := range val {
 				param := []reflect.Value{reflect.ValueOf(v), reflect.ValueOf(cfg), reflect.ValueOf(selection)}
 				res := method.Call(param)
 				resp = append(resp, res[0].Interface())
 			}
+
 			return resp
 		default:
 			panic(fmt.Sprintf("not supported type %s: %T, %v", key, val, val))
@@ -536,37 +612,45 @@ func (p *Parser) refineAttr(key string, raw interface{}, cfg map[string]interfac
 	return nil
 }
 
-func (p *Parser) getRefineMethodName(key string, refine, attr interface{}) string {
-	var mtdName string
-	switch mtd := refine.(type) {
+// convertAttrRefineToSnakeCaseName
+//
+//	@param key: the key of the stub
+//	@param refiner: is the _attr_refine defined in yaml
+//	@param attr: is the _attr key to be refined
+func (p *Parser) convertAttrRefineToSnakeCaseName(key string, refiner, attr interface{}) string {
+	var snakeCaseName string
+
+	switch mtd := refiner.(type) {
 	case bool:
 		switch attr.(type) {
 		case string:
-			mtdName = fmt.Sprintf("%v_%v_%v", _prefixRefine, key, attr)
+			snakeCaseName = fmt.Sprintf("%v_%v_%v", _prefixRefine, key, attr)
 		default:
-			mtdName = fmt.Sprintf("%v_%v", _prefixRefine, key)
+			snakeCaseName = fmt.Sprintf("%v_%v", _prefixRefine, key)
 		}
 	case string:
 		if mtd == RefineWithKeyName {
-			mtdName = fmt.Sprintf("%v_%v", _prefixRefine, key)
+			snakeCaseName = fmt.Sprintf("%v_%v", _prefixRefine, key)
 		} else {
-			mtdName = mtd
+			snakeCaseName = mtd
 		}
 	default:
-		panic(xpretty.Redf("refine method should be (bool or str), but (%s is %T: %v)\n", key, mtd, mtd))
+		panic(xpretty.Redf("refine method should be (bool or str), but (%s is %T: %v)", key, mtd, mtd))
 	}
 	// auto add refine to method starts with "_" like "_abc"
 	// so "_abc" will be converted to "refine_abc"
-	if strings.HasPrefix(mtdName, "_") && !strings.HasPrefix(mtdName, _prefixRefine) {
-		mtdName = _prefixRefine + mtdName
+	if strings.HasPrefix(snakeCaseName, "_") && !strings.HasPrefix(snakeCaseName, _prefixRefine) {
+		snakeCaseName = _prefixRefine + snakeCaseName
 	}
-	return mtdName
+
+	return snakeCaseName
 }
 
-func (p *Parser) getJoinerOr(cfg map[string]interface{}, or string) string {
-	joiner := or
+func (p *Parser) getJoinerOrDefault(cfg map[string]interface{}, dft string) string {
+	joiner := dft
 	if j := cfg[AttrJoiner]; j != nil {
-		joiner = j.(string)
+		joiner, _ = j.(string)
 	}
+
 	return joiner
 }

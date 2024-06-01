@@ -84,7 +84,7 @@ func (p *JSONParser) getSelectionAttr(key string, cfg map[string]interface{}, re
 	raw = result.String()
 	raw = p.stripChars(key, raw, cfg)
 	raw = p.refineAttr(key, raw, cfg, result)
-	raw = p.refineByRe(raw, cfg)
+	raw = p.advancedPostRefineAttr(raw, cfg)
 
 	return p.convertToType(raw, cfg)
 }
@@ -97,7 +97,7 @@ func (p *JSONParser) getSelectionSliceAttr(key string, cfg map[string]interface{
 
 	joiner := p.getJoinerOrDefault(cfg, AttrJoinerSep)
 	v := p.refineAttr(key, strings.Join(raw, joiner), cfg, resultArr)
-	v = p.refineByRe(v, cfg)
+	v = p.advancedPostRefineAttr(v, cfg)
 
 	return p.convertToType(v, cfg)
 }
@@ -110,7 +110,7 @@ func (p *JSONParser) getSelectionMapAttr(key string, cfg map[string]interface{},
 
 	str, _ := Stringify(dat)
 	v := p.refineAttr(key, str, cfg, results)
-	v = p.refineByRe(v, cfg)
+	v = p.advancedPostRefineAttr(v, cfg)
 
 	return p.convertToType(v, cfg)
 }

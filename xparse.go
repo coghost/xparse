@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	"github.com/coghost/xdtm"
+	"github.com/coghost/xparse/plugin/js"
+	"github.com/coghost/xparse/plugin/py3"
 	"github.com/coghost/xpretty"
 	"github.com/ghodss/yaml"
 	"github.com/gookit/config/v2"
@@ -551,6 +553,48 @@ func (p *Parser) refineByRe(raw interface{}, cfg map[string]interface{}) interfa
 	rawStr, _ := raw.(string)
 
 	return regex.FindString(rawStr)
+}
+
+func (p *Parser) refineByPython(raw interface{}, cfg map[string]interface{}) interface{} {
+	code, ok := cfg[AttrPython]
+	if !ok {
+		return raw
+	}
+
+	codeStr, _ := code.(string)
+	rawStr, _ := raw.(string)
+
+	resp, err := py3.Eval(codeStr, rawStr)
+	if err != nil {
+		log.Error().Err(err).Msg("cannot run python code")
+	}
+
+	return resp.RefinedString
+}
+
+func (p *Parser) refineByJS(raw interface{}, cfg map[string]interface{}) interface{} {
+	code, ok := cfg[AttrJS]
+	if !ok {
+		return raw
+	}
+
+	codeStr, _ := code.(string)
+	rawStr, _ := raw.(string)
+
+	resp, err := js.Eval(codeStr, rawStr)
+	if err != nil {
+		log.Error().Err(err).Msg("cannot run js code")
+	}
+
+	return resp.RefinedString
+}
+
+func (p *Parser) advancedPostRefineAttr(raw interface{}, cfg map[string]interface{}) interface{} {
+	raw = p.refineByRe(raw, cfg)
+	raw = p.refineByPython(raw, cfg)
+	raw = p.refineByJS(raw, cfg)
+
+	return raw
 }
 
 func (p *Parser) refineAttr(key string, raw interface{}, cfg map[string]interface{}, selection interface{}) interface{} {

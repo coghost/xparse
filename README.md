@@ -48,6 +48,22 @@ const (
 	Index = "_index"
 
 	// Locator is the path/selector we used to find elem we want
+	//
+	// Supported types:
+	//  > string:
+	//   _locator: string
+	//
+	//  > list:
+	//   _locator:
+	//     - div.001
+	//     - div.002
+	//     - div.003
+	//
+	//  > map:
+	//   _locator:
+	//     key1: div.001
+	//     key2: div.002
+	//     key3: div.003
 	Locator = "_locator"
 
 	// ExtractPrevElem
@@ -73,6 +89,27 @@ const (
 	AttrIndex = "_attr_index"
 
 	AttrRegexp = "_attr_regexp"
+
+	// AttrPython run python script directly(python environment is required), and the print will be used as the attr value.
+	// i.e.:
+	//
+	//   import sys
+	//   raw = sys.argv[1] # raw is globally registered, so we can it directly.
+	//   # previous two line is automatically added to following to code.
+	//   arr = raw.split("_")
+	//   print(arr[1]) # this is required, we need the output value as refined attr value.
+	//
+	// > please check `examples/html_yaml/0900.yaml` for demo.
+	AttrPython = "_attr_python"
+
+	// AttrJS like python, but with js.
+	// i.e.:
+	//   arr = raw.split("_") // by default, raw is registered
+	//   refined = arr[1] // refined is required, it the value we get from js.
+	//
+	//  - please check `examples/html_yaml/0901.yaml` for demo.
+	//  - JavaScript library: underscore(https://underscorejs.org/) is supported by default"
+	AttrJS = "_attr_js"
 
 	// PostJoin is called when all attrs (as array) are parsed,
 	// it transforms the attrs array to string by joining the joiner
@@ -101,7 +138,7 @@ const (
 )
 
 const (
-	// JsonArrayRootLocator is a hard-coded symbol,
+	// JSONArrayRootLocator is a hard-coded symbol,
 	//
 	// since JSON is built on two structures:
 	//   - A collection of name/value pairs.
@@ -109,7 +146,7 @@ const (
 	//
 	// and there is no root locator for ordered list,
 	// so we use this symbol when json file is with ordered list of values like: `[{...}, {...}]`
-	JsonArrayRootLocator = "*/*"
+	JSONArrayRootLocator = "*/*"
 )
 
 const (
@@ -164,8 +201,12 @@ const (
 	AttrTypeB = "b"
 	AttrTypeF = "f"
 	AttrTypeI = "i"
+
 	// time
-	AttrTypeT  = "t"
+
+	// AttrTypeT quick mode
+	AttrTypeT = "t"
+	// AttrTypeT1 search mode, a bit slower
 	AttrTypeT1 = "t1"
 )
 

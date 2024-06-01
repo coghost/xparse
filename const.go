@@ -55,6 +55,27 @@ const (
 
 	AttrRegexp = "_attr_regexp"
 
+	// AttrPython run python script directly(python environment is required), and the print will be used as the attr value.
+	// i.e.:
+	//
+	//   import sys
+	//   raw = sys.argv[1] # raw is globally registered, so we can it directly.
+	//   # previous two line is automatically added to following to code.
+	//   arr = raw.split("_")
+	//   print(arr[1]) # this is required, we need the output value as refined attr value.
+	//
+	// > please check `examples/html_yaml/0900.yaml` for demo.
+	AttrPython = "_attr_python"
+
+	// AttrJS like python, but with js.
+	// i.e.:
+	//   arr = raw.split("_") // by default, raw is registered
+	//   refined = arr[1] // refined is required, it the value we get from js.
+	//
+	//  - please check `examples/html_yaml/0901.yaml` for demo.
+	//  - JavaScript library: underscore(https://underscorejs.org/) is supported by default"
+	AttrJS = "_attr_js"
+
 	// PostJoin is called when all attrs (as array) are parsed,
 	// it transforms the attrs array to string by joining the joiner
 	PostJoin = "_post_join"

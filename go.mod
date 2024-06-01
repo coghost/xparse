@@ -10,6 +10,7 @@ require (
 	github.com/gookit/config/v2 v2.2.5
 	github.com/gookit/goutil v0.6.15
 	github.com/iancoleman/strcase v0.2.0
+	github.com/robertkrimen/otto v0.4.0
 	github.com/rs/zerolog v1.32.0
 	github.com/spf13/cast v1.6.0
 	github.com/stretchr/testify v1.9.0
@@ -40,16 +41,18 @@ require (
 	github.com/olebedev/when v0.0.0-20221205223600-4d190b02b8d8 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/rogpeppe/go-internal v1.12.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tj/go-naturaldate v1.3.0 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	golang.org/x/exp v0.0.0-20240213143201-ec583247a57a // indirect
-	golang.org/x/sync v0.6.0 // indirect
+	golang.org/x/sync v0.7.0 // indirect
 	golang.org/x/sys v0.17.0 // indirect
 	golang.org/x/term v0.17.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028 // indirect
+	gopkg.in/sourcemap.v1 v1.0.5 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

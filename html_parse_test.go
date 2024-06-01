@@ -649,8 +649,6 @@ func (s *HTMLParserSuite) Test_0801() {
 	p.DoParse()
 
 	failed, all := Verify(p.MustDataAsJSON(), p.VerifyKeys())
-	// pp.Println(failed)
-	// pp.Println(all)
 
 	wantF := map[string][]string{
 		"jobs": {
@@ -721,4 +719,50 @@ func (s *HTMLParserSuite) Test_0802() {
 	}
 	s.Equal(wantF, failed)
 	s.Equal(wantAll, all)
+}
+
+func (s *HTMLParserSuite) Test_0900() {
+	rawHTML, rawYaml := getIndeedHTMLData("0900.yaml")
+	p := NewHTMLParser(rawHTML, rawYaml)
+	p.DoParse()
+
+	wantData := map[string]interface{}{
+		"jobs": []map[string]interface{}{
+			{
+				"company": map[string]interface{}{
+					"name": "CrowdStrike",
+				},
+				"id":           "8cd20f584d7164c7",
+				"listing_date": "",
+				"rank":         0,
+				"remote":       "Remote",
+				"title":        "Data Scientist, Malware Detections Team (Remote)",
+			},
+		},
+	}
+
+	s.Equal(wantData, p.ParsedData)
+}
+
+func (s *HTMLParserSuite) Test_0901() {
+	rawHTML, rawYaml := getIndeedHTMLData("0901.yaml")
+	p := NewHTMLParser(rawHTML, rawYaml)
+	p.DoParse()
+
+	wantData := map[string]interface{}{
+		"jobs": []map[string]interface{}{
+			{
+				"company": map[string]interface{}{
+					"name": "CrowdStrike",
+				},
+				"id":           "8cd20f584d7164c7",
+				"listing_date": "",
+				"rank":         0,
+				"remote":       "Remote",
+				"title":        "Data Scientist, Malware Detections Team (Remote)",
+			},
+		},
+	}
+
+	s.Equal(wantData, p.ParsedData)
 }

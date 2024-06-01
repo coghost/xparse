@@ -435,7 +435,7 @@ func (p *HTMLParser) getSelectionSliceAttr(key string, cfg map[string]interface{
 	// joiner := p.getJoinerOr(cfg, AttrJoinerSep)
 	// v := p.refineAttr(key, strings.Join(resArr, joiner), cfg, resultArr)
 	v := p.refineAttr(key, resArr, cfg, resultArr)
-	v = p.refineByRe(v, cfg)
+	v = p.advancedPostRefineAttr(v, cfg)
 
 	return p.convertToType(v, cfg)
 }
@@ -450,7 +450,7 @@ func (p *HTMLParser) getSelectionMapAttr(key string, cfg map[string]interface{},
 
 	str, _ := Stringify(dat)
 	v := p.refineAttr(key, str, cfg, results)
-	v = p.refineByRe(v, cfg)
+	v = p.advancedPostRefineAttr(v, cfg)
 
 	return p.convertToType(v, cfg)
 }
@@ -459,7 +459,7 @@ func (p *HTMLParser) getSelectionAttr(key string, cfg map[string]interface{}, se
 	raw := p.getRawAttr(cfg, selection)
 	raw = p.stripChars(key, raw, cfg)
 	raw = p.refineAttr(key, raw, cfg, selection)
-	raw = p.refineByRe(raw, cfg)
+	raw = p.advancedPostRefineAttr(raw, cfg)
 
 	return p.convertToType(raw, cfg)
 }

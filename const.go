@@ -36,6 +36,8 @@ const (
 	// but in some rare cases, there is no proper locator to use, so we have to use this to get prev elem
 	ExtractPrevElem = "_extract_prev"
 
+	ExtractParent = "_extract_parent"
+
 	// Attr
 	// by default we use the text of elem, but we can always specify the attr we want
 	// this is useful when parsing info from HTML
@@ -100,6 +102,7 @@ const (
 	LocatorAbbr    = "_l"
 	IndexAbbr      = "_i"
 	AttrRefineAbbr = "_ar"
+	TypeAbbr       = "_t"
 )
 
 const (

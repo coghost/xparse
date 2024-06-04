@@ -1,0 +1,18 @@
+__raw:
+  site_url: https://xkcd.com/
+  test_keys:
+    - entity.*
+
+entity:
+  _l: body
+  title:
+    _l: '#paragraph'
+  item_id: 'div#generated>p#item_id'
+  content_path: 'div#generated>p#content_path'
+  content_size: 'div#generated>p#content_size'
+  content_type: 'div#generated>p#content_type'
+  item_listing_date: 'div#generated>p#item_listing_date'
+  page_dwell_time: 'div#generated>p#page_dwell_time'
+  page_url:
+    _l: 'div#generated>p#page_url'
+    _strip: true

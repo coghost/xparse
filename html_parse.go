@@ -327,6 +327,10 @@ func (p *HTMLParser) handleNullIndexOnly(key string, isComplexSel bool, cfg map[
 			return p.getAllSelections(elems)
 		}
 
+		if s, ok := cfg[ExtractParent]; ok {
+			return p.extractParent(key, s, elems)
+		}
+
 		if s, ok := cfg[ExtractPrevElem]; !ok {
 			return elems.First()
 		} else {
@@ -336,6 +340,22 @@ func (p *HTMLParser) handleNullIndexOnly(key string, isComplexSel bool, cfg map[
 
 	// if index is yaml's null: '~' or null
 	return p.getAllSelections(elems)
+}
+
+func (p *HTMLParser) extractParent(key string, sel interface{}, elems *goquery.Selection) interface{} {
+	switch preSel := sel.(type) {
+	case bool:
+		return elems.Parent()
+	case uint64, int, int64:
+		n := cast.ToInt(preSel)
+		for i := 0; i < n; i++ {
+			elems = elems.Parent()
+		}
+
+		return elems
+	}
+
+	panic(xpretty.Redf("action _extract_parent only support bool and int, but (%s's %v is %T: %v)", key, ExtractParent, sel, sel))
 }
 
 func (p *HTMLParser) extractPrevNode(key string, sel interface{}, elems *goquery.Selection) interface{} {

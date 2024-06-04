@@ -215,7 +215,14 @@ func (p *Parser) PrettifyJSONData(args ...interface{}) error {
 // DataAsJson returns a string of args[0] or p.ParsedData and error
 func (p *Parser) DataAsJSON(args ...interface{}) (string, error) {
 	if len(args) != 0 {
-		return Stringify(args[0])
+		key, _ := args[0].(string)
+
+		v, ok := p.ParsedData[key]
+		if !ok {
+			return "", fmt.Errorf("cannot get data for key: %s", args[0])
+		}
+
+		return Stringify(v)
 	}
 
 	return Stringify(p.ParsedData)
@@ -420,7 +427,7 @@ func (p *Parser) setRank(cfg map[string]interface{}) {
 }
 
 func (p *Parser) convertToType(raw interface{}, cfg map[string]interface{}) interface{} {
-	t, o := cfg[Type]
+	t, o := cfgType(cfg)
 	if o {
 		switch t {
 		case AttrTypeB:
@@ -534,6 +541,8 @@ func (p *Parser) loadPreDefined(mtdName string) (func(raw ...interface{}) interf
 		return p.BindRank, true
 	case "EnrichUrl":
 		return p.EnrichUrl, true
+	case "RefineEncodedJson":
+		return p.RefineEncodedJson, true
 	default:
 		return nil, false
 	}

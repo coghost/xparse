@@ -22,8 +22,8 @@ func (s *JSSuite) TearDownSuite() {
 
 func (s *JSSuite) TestSimple() {
 	code := `
-arr = input.split(",")
-output = arr[0]
+arr = raw.split(",")
+refined = arr[0]
 	`
 
 	res, err := Eval(code, "js_is_great, do you know?")
@@ -34,9 +34,9 @@ output = arr[0]
 
 func (s *JSSuite) TestUnderscore() {
 	code := `
-arr = input.split(",")
+arr = raw.split(",")
 arr = _.uniq(arr)
-output = arr.join()
+refined = arr.join()
 	`
 
 	res, err := Eval(code, "apple,banana,apple,kiwi,lemon,kiwi")

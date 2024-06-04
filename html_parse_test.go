@@ -685,6 +685,7 @@ func (s *HTMLParserSuite) Test_0801() {
 func (s *HTMLParserSuite) Test_0802() {
 	rawHTML, rawYaml := getIndeedHTMLData("0802.yaml")
 	p := NewHTMLParser(rawHTML, rawYaml)
+	UpdateRefiners(p)
 	p.DoParse()
 
 	failed, all := Verify(p.MustDataAsJSON(), p.VerifyKeys())
@@ -765,4 +766,49 @@ func (s *HTMLParserSuite) Test_0901() {
 	}
 
 	s.Equal(wantData, p.ParsedData)
+}
+
+func (s *HTMLParserSuite) Test_1000() {
+	rawYaml := getBytes("html_yaml/1000.yaml")
+	rawHTML := getBytes("indeed/auto_gen.html")
+	p := NewHTMLParser(rawHTML, rawYaml)
+	p.DoParse()
+
+	want := map[string]interface{}{
+		"entity": map[string]interface{}{
+			"message": map[string]interface{}{
+				"content_path":      "60/raw/20240531_20240531_07a062649c160558.html",
+				"content_size":      37410.000000,
+				"content_type":      "html",
+				"item_id":           "07a062649c160558",
+				"item_listing_date": "20240531",
+				"page_dwell_time":   4.0,
+				"page_url":          "https://crc.wintalent.cn/wt/CRC/web/templet1000/index/corpwebPosition1000CRC!getOnePosition?postIdEnc=07a062649c160558&brandCode=1&recruitType=2&lanType=1&showComp=true",
+			},
+			"title": "Hello, World!",
+		},
+	}
+
+	s.Equal(want, p.ParsedData)
+}
+
+func (s *HTMLParserSuite) Test_1001() {
+	rawYaml := getBytes("html_yaml/1001.yaml")
+	rawHTML := getBytes("indeed/auto_gen.html")
+	p := NewHTMLParser(rawHTML, rawYaml)
+	p.DoParse()
+
+	want := map[string]interface{}{
+		"entity": map[string]interface{}{
+			"content_path":      "60/raw/20240531_20240531_07a062649c160558.html",
+			"content_size":      "37410",
+			"content_type":      "html",
+			"item_id":           "07a062649c160558",
+			"item_listing_date": "20240531",
+			"page_dwell_time":   "4",
+			"page_url":          "https://crc.wintalent.cn/wt/CRC/web/templet1000/index/corpwebPosition1000CRC!getOnePosition?postIdEnc=07a062649c160558&brandCode=1&recruitType=2&lanType=1&showComp=true",
+			"title":             "Hello, World!",
+		},
+	}
+	s.Equal(want, p.ParsedData)
 }

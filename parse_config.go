@@ -32,6 +32,15 @@ func cfgAttrRefine(cfg map[string]interface{}) (interface{}, bool) {
 	return getConfig(cfg, AttrRefine, AttrRefineAbbr)
 }
 
+// mustCfgIndex must get _index's config
+func mustCfgType(cfg map[string]interface{}) interface{} {
+	return must(cfgType, cfg)
+}
+
+func cfgType(cfg map[string]interface{}) (interface{}, bool) {
+	return getConfig(cfg, Type, TypeAbbr)
+}
+
 func getConfig(cfg map[string]interface{}, keys ...string) (interface{}, bool) {
 	for _, k := range keys {
 		sel, ok := cfg[k]

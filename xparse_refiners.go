@@ -1,8 +1,11 @@
 package xparse
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"strings"
 
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cast"
 )
 
@@ -130,4 +133,24 @@ func (p *Parser) RefineAttrByIndex(raw ...interface{}) interface{} {
 	txt = strings.TrimSpace(txt)
 
 	return txt
+}
+
+func (p *Parser) RefineEncodedJson(raw ...interface{}) interface{} {
+	txt := p.GetStrBySplitAtIndex(raw[0], "", -1)
+
+	content, err := base64.StdEncoding.DecodeString(txt)
+	if err != nil {
+		log.Warn().Err(err).Msg("cannot decode string")
+		return nil
+	}
+
+	var data map[string]interface{}
+
+	err = json.Unmarshal(content, &data)
+	if err != nil {
+		log.Warn().Err(err).Msg("cannot unmarshal str to json")
+		return nil
+	}
+
+	return data
 }

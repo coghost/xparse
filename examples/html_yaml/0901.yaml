@@ -1,0 +1,37 @@
+__raw:
+  site_url: https://xkcd.com/
+  test_keys:
+    - jobs.*
+
+jobs:
+  rank:
+    _attr_refine: bind_rank
+  _index:
+    - 11
+  _locator: ul.jobsearch-ResultsList>li>div.result
+  title:
+    _l: h2.jobTitle>a
+  remote:
+    _l: h2.jobTitle>a
+    _attr_js: |
+      function handle() {
+        raw = 'Data Scientist, Malware Detections Team (Remote)';
+        arr = raw.split('(');
+        if (arr.length === 1) {
+          return raw;
+        }
+        arr = arr[1].split(')');
+        return arr[0];
+      }
+      refined = handle()
+  id:
+    _locator: h2.jobTitle>a
+    _attr: id
+    _attr_js: |
+      arr = raw.split("_")
+      refined = arr[1]
+  listing_date:
+    _locator: span.date-not-existed
+  company:
+    _locator: div.companyInfo
+    name: span.companyName

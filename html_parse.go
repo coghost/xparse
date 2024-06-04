@@ -327,6 +327,10 @@ func (p *HTMLParser) handleNullIndexOnly(key string, isComplexSel bool, cfg map[
 			return p.getAllSelections(elems)
 		}
 
+		if s, ok := cfg[ExtractParent]; ok {
+			return p.extractParent(key, s, elems)
+		}
+
 		if s, ok := cfg[ExtractPrevElem]; !ok {
 			return elems.First()
 		} else {
@@ -336,6 +340,22 @@ func (p *HTMLParser) handleNullIndexOnly(key string, isComplexSel bool, cfg map[
 
 	// if index is yaml's null: '~' or null
 	return p.getAllSelections(elems)
+}
+
+func (p *HTMLParser) extractParent(key string, sel interface{}, elems *goquery.Selection) interface{} {
+	switch preSel := sel.(type) {
+	case bool:
+		return elems.Parent()
+	case uint64, int, int64:
+		n := cast.ToInt(preSel)
+		for i := 0; i < n; i++ {
+			elems = elems.Parent()
+		}
+
+		return elems
+	}
+
+	panic(xpretty.Redf("action _extract_parent only support bool and int, but (%s's %v is %T: %v)", key, ExtractParent, sel, sel))
 }
 
 func (p *HTMLParser) extractPrevNode(key string, sel interface{}, elems *goquery.Selection) interface{} {
@@ -435,7 +455,7 @@ func (p *HTMLParser) getSelectionSliceAttr(key string, cfg map[string]interface{
 	// joiner := p.getJoinerOr(cfg, AttrJoinerSep)
 	// v := p.refineAttr(key, strings.Join(resArr, joiner), cfg, resultArr)
 	v := p.refineAttr(key, resArr, cfg, resultArr)
-	v = p.refineByRe(v, cfg)
+	v = p.advancedPostRefineAttr(v, cfg)
 
 	return p.convertToType(v, cfg)
 }
@@ -450,7 +470,7 @@ func (p *HTMLParser) getSelectionMapAttr(key string, cfg map[string]interface{},
 
 	str, _ := Stringify(dat)
 	v := p.refineAttr(key, str, cfg, results)
-	v = p.refineByRe(v, cfg)
+	v = p.advancedPostRefineAttr(v, cfg)
 
 	return p.convertToType(v, cfg)
 }
@@ -459,7 +479,7 @@ func (p *HTMLParser) getSelectionAttr(key string, cfg map[string]interface{}, se
 	raw := p.getRawAttr(cfg, selection)
 	raw = p.stripChars(key, raw, cfg)
 	raw = p.refineAttr(key, raw, cfg, selection)
-	raw = p.refineByRe(raw, cfg)
+	raw = p.advancedPostRefineAttr(raw, cfg)
 
 	return p.convertToType(raw, cfg)
 }

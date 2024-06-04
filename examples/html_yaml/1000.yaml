@@ -1,0 +1,12 @@
+__raw:
+  site_url: https://xkcd.com/
+  test_keys:
+    - entity.*
+
+entity:
+  _l: body
+  title:
+    _l: '#paragraph'
+  message:
+    _l: '#generated_b64'
+    _ar: _refine_encoded_json

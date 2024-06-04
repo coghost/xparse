@@ -11,8 +11,7 @@ import (
 )
 
 const (
-	hint0 = ``
-	hint1 = `
+	hint = `
 
 func (p *%[3]s) %[1]s(raw ...interface{}) interface{} {
 	// TODO: raw[0] is the interface of string value parsed
@@ -22,15 +21,6 @@ func (p *%[3]s) %[1]s(raw ...interface{}) interface{} {
 	return txt
 }
 `
-	hint2 = `
-
-func (p *%[3]s) %[1]s(raw ...interface{}) interface{} {
-	v := cast.ToString(raw[0])
-	// TODO: raw[1] is map/*config.Config
-	// TODO: raw[2] is *goquery.Selection/gjson.Result
-	return v
-}
-	`
 
 	hintFn = `
 %[4]s
@@ -45,6 +35,8 @@ Maybe you've missed one of following methods:
 %[4]s
 `
 )
+
+var hintSep = strings.Repeat("-", 32) //nolint
 
 type RefOpts struct {
 	methods  []string
@@ -71,8 +63,7 @@ func WithHintType(i int) RefOptFunc {
 	}
 }
 
-//nolint:forbidigo,mnd,stylecheck
-func prompt(iface interface{}, mtd_name, mtdName string, opts ...RefOptFunc) {
+func prompt(iface interface{}, snakeMtdName, mtdName string, opts ...RefOptFunc) {
 	opt := RefOpts{}
 	bindRefOpts(&opt, opts...)
 
@@ -80,19 +71,10 @@ func prompt(iface interface{}, mtd_name, mtdName string, opts ...RefOptFunc) {
 	arr := strings.Split(prmType, ".")
 	prmType = arr[len(arr)-1]
 
-	hint := ""
-
-	switch opt.hintType {
-	case 2:
-		hint = hint2
-	default:
-		hint = hint1
-	}
-
-	fmt.Println(xpretty.Redf(`Cannot find Refiner: (%s or %s)`, mtd_name, mtdName))
-	fmt.Println(xpretty.Redf(`Please add following method:`))
-	fmt.Println(xpretty.Greenf(hint, mtdName, mtd_name, prmType, strings.Repeat("-", 32)))
-	fmt.Println(xpretty.Yellowf(hintFn, mtdName, mtd_name, prmType, strings.Repeat("-", 32)))
+	xpretty.RedPrintf(`Cannot find Refiner: (%s or %s)`, snakeMtdName, mtdName)
+	xpretty.RedPrintf(`Please add following method:`)
+	xpretty.GreenPrintf(hint, mtdName, snakeMtdName, prmType, hintSep)
+	xpretty.YellowPrintf(hintFn, mtdName, snakeMtdName, prmType, hintSep)
 
 	os.Exit(0)
 }

@@ -55,7 +55,7 @@ const (
 
 	AttrIndex = "_attr_index"
 
-	AttrRegexp = "_attr_regexp"
+	AttrRegex = "_attr_regex"
 
 	// AttrPython run python script directly(python environment is required), and the print will be used as the attr value.
 	// i.e.:

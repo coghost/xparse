@@ -37,6 +37,10 @@ func (p *Parser) BindRank(raw ...interface{}) interface{} {
 	return p.rank
 }
 
+func (p *Parser) RefineRank(raw ...interface{}) interface{} {
+	return p.rank
+}
+
 // TrimByFields removes all "\r\n\t" and keep one space at most
 //
 //   - 1. strings.TrimSpace
@@ -153,4 +157,29 @@ func (p *Parser) RefineEncodedJson(raw ...interface{}) interface{} {
 	}
 
 	return data
+}
+
+func (p *Parser) RefineJobsWithPreset() {
+	p.refineJobs()
+	p.refineJob()
+}
+
+func (p *Parser) refineJobs() {
+	jobs, ok := p.GetParsedData("jobs").([]map[string]interface{})
+	if !ok {
+		return
+	}
+
+	for _, job := range jobs {
+		p.AppendPresetData(job)
+	}
+}
+
+func (p *Parser) refineJob() {
+	job, ok := p.GetParsedData("job").(map[string]interface{})
+	if !ok {
+		return
+	}
+
+	p.AppendPresetData(job)
 }

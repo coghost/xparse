@@ -53,6 +53,7 @@ func (p *HTMLParser) DoParse() {
 	}
 
 	p.PostDoParse()
+	p.RefineJobsWithPreset()
 }
 
 // parseDom

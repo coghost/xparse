@@ -3,13 +3,13 @@ module github.com/coghost/xparse
 go 1.22.3
 
 require (
-	github.com/PuerkitoBio/goquery v1.8.1
+	github.com/PuerkitoBio/goquery v1.9.2
 	github.com/coghost/xdtm v0.1.2-20240109
 	github.com/coghost/xpretty v0.0.0-20221010043412-c2eabe3e48d9
 	github.com/ghodss/yaml v1.0.0
 	github.com/gookit/config/v2 v2.2.5
 	github.com/gookit/goutil v0.6.15
-	github.com/iancoleman/strcase v0.2.0
+	github.com/iancoleman/strcase v0.3.0
 	github.com/robertkrimen/otto v0.4.0
 	github.com/rs/zerolog v1.33.0
 	github.com/spf13/cast v1.6.0
@@ -27,9 +27,9 @@ require (
 	github.com/andybalholm/cascadia v1.3.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/elliotchance/pie/v2 v2.8.0 // indirect
-	github.com/fatih/color v1.16.0 // indirect
+	github.com/fatih/color v1.17.0 // indirect
 	github.com/goccy/go-yaml v1.11.3 // indirect
-	github.com/golang-module/carbon/v2 v2.3.8 // indirect
+	github.com/golang-module/carbon/v2 v2.3.12 // indirect
 	github.com/gookit/color v1.5.4 // indirect
 	github.com/hablullah/go-hijri v1.0.2 // indirect
 	github.com/hablullah/go-juliandays v1.0.0 // indirect
@@ -43,13 +43,13 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
-	github.com/tetratelabs/wazero v1.6.0 // indirect
+	github.com/tetratelabs/wazero v1.7.2 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tj/go-naturaldate v1.3.0 // indirect
-	github.com/wasilibs/go-re2 v1.4.1 // indirect
+	github.com/wasilibs/go-re2 v1.5.3 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
-	golang.org/x/exp v0.0.0-20240530194437-404ba88c7ed0 // indirect
+	golang.org/x/exp v0.0.0-20240531132922-fd00a4e0eefc // indirect
 	golang.org/x/sync v0.7.0 // indirect
 	golang.org/x/sys v0.20.0 // indirect
 	golang.org/x/term v0.20.0 // indirect

@@ -40,7 +40,7 @@ type Parser struct {
 
 	Root interface{}
 
-	// this is a map's stub, check PrefixLocatorStub for more info
+	// this is a map's stub, check const.PrefixLocatorStub for more info
 	FocusedStub interface{}
 
 	RawData string
@@ -209,7 +209,7 @@ func (p *Parser) PrettifyData(args ...interface{}) error {
 }
 
 func (p *Parser) PrettifyJSONData(args ...interface{}) error {
-	return xpretty.PrettyJson(p.MustDataAsJSON(args...))
+	return xpretty.PrettyJSON(p.MustDataAsJSON(args...))
 }
 
 // DataAsJson returns a string of args[0] or p.ParsedData and error
@@ -219,7 +219,7 @@ func (p *Parser) DataAsJSON(args ...interface{}) (string, error) {
 
 		v, ok := p.ParsedData[key]
 		if !ok {
-			return "", fmt.Errorf("cannot get data for key: %s", args[0])
+			return "", fmt.Errorf("cannot get data for key: %s", args[0]) //nolint
 		}
 
 		return Stringify(v)
@@ -539,6 +539,8 @@ func (p *Parser) loadPreDefined(mtdName string) (func(raw ...interface{}) interf
 	switch mtdName {
 	case "BindRank":
 		return p.BindRank, true
+	case "RefineRank":
+		return p.RefineRank, true
 	case "EnrichUrl":
 		return p.EnrichUrl, true
 	case "RefineEncodedJson":
@@ -549,14 +551,14 @@ func (p *Parser) loadPreDefined(mtdName string) (func(raw ...interface{}) interf
 }
 
 func (p *Parser) refineByRe(raw interface{}, cfg map[string]interface{}) interface{} {
-	rgx, ok := cfg[AttrRegexp]
+	rgx, ok := cfg[AttrRegex]
 	if !ok {
 		return raw
 	}
 
 	regex, err := regexp.Compile(rgx.(string))
 	if err != nil {
-		log.Error().Err(err).Interface("regexp", rgx).Msg("cannot compile regexp")
+		log.Error().Err(err).Interface("regex", rgx).Msg("cannot compile regex")
 	}
 
 	rawStr, _ := raw.(string)

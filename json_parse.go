@@ -51,6 +51,7 @@ func (p *JSONParser) DoParse() {
 	}
 
 	p.PostDoParse()
+	p.RefineJobsWithPreset()
 }
 
 func (p *JSONParser) parseDom(key string, cfg interface{}, result gjson.Result, data map[string]interface{}, layer int) {

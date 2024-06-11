@@ -36,9 +36,6 @@ type IParser interface {
 	DoParse()
 }
 
-func PreParse(p IParser, preset map[string]interface{}) {
-}
-
 func DoParse(parser IParser, opts ...ParseOptFunc) interface{} {
 	opt := &ParseOpts{}
 	bindParseOpts(opt, opts...)
@@ -47,12 +44,9 @@ func DoParse(parser IParser, opts ...ParseOptFunc) interface{} {
 	parser.ToggleDevMode(true)
 	UpdateRefiners(parser)
 	parser.DoParse()
-	parser.PostDoParse()
+	// parser.PostDoParse()
 
 	return parser.GetParsedData()
-}
-
-func PostParse(p IParser) {
 }
 
 type ParseOpts struct {

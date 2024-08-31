@@ -1,6 +1,7 @@
 package xparse
 
 import (
+	"encoding/json"
 	"fmt"
 	"math"
 	"reflect"
@@ -30,6 +31,10 @@ const (
 
 const (
 	_rangeIndexLen = 2
+)
+
+const (
+	skippedKeySymbol = "__"
 )
 
 type Parser struct {
@@ -235,6 +240,16 @@ func (p *Parser) MustDataAsJSON(args ...interface{}) string {
 	return raw
 }
 
+func (p *Parser) DataAsStruct(structObj any, args ...interface{}) error {
+	raw, err := p.DataAsJSON(args...)
+
+	if err != nil {
+		return err
+	}
+
+	return json.Unmarshal([]byte(raw), structObj)
+}
+
 func (p *Parser) DataAsYaml(args ...interface{}) (string, error) {
 	raw, err := p.DataAsJSON(args...)
 	if err != nil {
@@ -304,10 +319,6 @@ func (p *Parser) popNestedKeys() {
 
 	p.nestedKeysForCheckingTestKeys = p.nestedKeysForCheckingTestKeys[:len(p.nestedKeysForCheckingTestKeys)-1]
 }
-
-const (
-	skippedKeySymbol = "__"
-)
 
 func (p *Parser) appendNestedKeys(key string) {
 	if strings.Contains(key, skippedKeySymbol) {
@@ -420,6 +431,9 @@ func (p *Parser) setRank(cfg map[string]interface{}) {
 
 		p.rankOffset++
 	case string:
+		p.rank = p.rankOffset
+		p.rankOffset++
+
 		return
 	default:
 		panic(fmt.Sprintf("unsupported index for setRank %v", idx))

@@ -41,6 +41,14 @@ func (p *Parser) RefineRank(raw ...interface{}) interface{} {
 	return p.rank
 }
 
+func (p *Parser) RefineUpper(raw ...interface{}) interface{} {
+	return strings.ToUpper(cast.ToString(raw[0]))
+}
+
+func (p *Parser) RefineLower(raw ...interface{}) interface{} {
+	return strings.ToLower(cast.ToString(raw[0]))
+}
+
 // TrimByFields removes all "\r\n\t" and keep one space at most
 //
 //   - 1. strings.TrimSpace

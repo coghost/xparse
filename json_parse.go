@@ -45,7 +45,7 @@ func (p *JSONParser) DoParse() {
 			result, _ := p.Root.(gjson.Result)
 			p.parseDom(key, cfgType, result, p.ParsedData, _layerForRank)
 		default:
-			fmt.Fprint(os.Stderr, xpretty.Redf("[NON-MAP] {%v:%v}, please move into a map instead", key, cfg))
+			fmt.Fprint(os.Stderr, xpretty.Redf(_nonMapHint, key, cfg))
 			continue
 		}
 	}

@@ -53,6 +53,10 @@ const (
 	// AttrJoiner attr joiner
 	AttrJoiner = "_joiner"
 
+	// AttrIndex
+	//   - _joiner: ","
+	//   - _attr_refine: _attr_by_index
+	//   - _attr_index: 0
 	AttrIndex = "_attr_index"
 
 	AttrRegex = "_attr_regex"
@@ -85,6 +89,7 @@ const (
 	// Strip is a simple refiner
 	//  - if `_strip: true` or _strip not existed, will do `strings.TrimSpace`
 	//  - if `_strip: str` goes with a str, will do `strings.ReplaceAll(raw, str, "")`
+	//  - if `_strip: ["(", ")"]`, will replace one by one
 	//
 	//  WARN: this is called by default, you should use `_strip: false` to disable it
 	Strip = "_strip"

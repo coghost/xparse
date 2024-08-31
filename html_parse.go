@@ -156,7 +156,7 @@ func (p *HTMLParser) getAllElems(key string,
 ) (iface interface{}, isComplexSel bool) {
 	selCfg := mustCfgLocator(cfg)
 	if selCfg == nil {
-		return selection, isComplexSel
+		return selection, false
 	}
 
 	isComplexSel = true
@@ -410,7 +410,22 @@ func (p *HTMLParser) getNodesAttrs(
 			d := p.postJoin(cfg, subData)
 			data[key] = d
 		} else {
-			data[key] = p.getSelectionSliceAttr(key, cfg, dom)
+			cpxIface := p.getSelectionSliceAttr(key, cfg, dom)
+
+			switch ifc := cpxIface.(type) {
+			case []string:
+				var sd []interface{}
+				for _, k := range ifc {
+					sd = append(sd, k)
+				}
+
+				data[key] = p.postJoin(cfg, sd)
+			case []interface{}:
+				d := p.postJoin(cfg, ifc)
+				data[key] = d
+			default:
+				data[key] = ifc
+			}
 		}
 	case map[string]*goquery.Selection:
 		if !complexSel {

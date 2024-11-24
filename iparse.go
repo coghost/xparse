@@ -13,6 +13,8 @@ type IData interface {
 	BindPresetData(dat map[string]interface{})
 	AppendPresetData(data map[string]interface{})
 
+	LoadRootSelection([]byte)
+
 	GetParsedData(keys ...string) interface{}
 	DataAsJSON(args ...interface{}) (string, error)
 	MustDataAsJSON(args ...interface{}) string

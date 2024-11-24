@@ -508,6 +508,16 @@ func (p *HTMLParser) getRawAttr(cfg map[string]interface{}, selection *goquery.S
 		return p.TrimSpace(v, cfg)
 	}
 
+	if attr == "__html" {
+		v, err := selection.Html()
+
+		if err != nil {
+			panic(v)
+		}
+
+		return v
+	}
+
 	if attr == AttrJoinElemsText {
 		var arr []string
 

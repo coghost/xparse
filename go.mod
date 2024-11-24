@@ -8,16 +8,16 @@ require (
 	github.com/coghost/xpretty v0.0.0-20221010043412-c2eabe3e48d9
 	github.com/ghodss/yaml v1.0.0
 	github.com/gookit/config/v2 v2.2.5
-	github.com/gookit/goutil v0.6.16
+	github.com/gookit/goutil v0.6.17
 	github.com/iancoleman/strcase v0.3.0
 	github.com/robertkrimen/otto v0.4.0
 	github.com/rs/zerolog v1.33.0
-	github.com/spf13/cast v1.6.0
+	github.com/spf13/cast v1.7.0
 	github.com/stretchr/testify v1.9.0
 	github.com/thoas/go-funk v0.9.3
 	github.com/tidwall/gjson v1.17.1
 	github.com/ungerik/go-dry v0.0.0-20231011182423-d9a07fd18c5f
-	golang.org/x/net v0.26.0
+	golang.org/x/net v0.29.0
 )
 
 require (
@@ -50,11 +50,11 @@ require (
 	github.com/tj/go-naturaldate v1.3.0 // indirect
 	github.com/wasilibs/go-re2 v1.5.3 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
-	golang.org/x/exp v0.0.0-20240604190554-fc45aab8b7f8 // indirect
-	golang.org/x/sync v0.7.0 // indirect
-	golang.org/x/sys v0.22.0 // indirect
-	golang.org/x/term v0.22.0 // indirect
-	golang.org/x/text v0.16.0 // indirect
+	golang.org/x/exp v0.0.0-20240909161429-701f63a606c0 // indirect
+	golang.org/x/sync v0.8.0 // indirect
+	golang.org/x/sys v0.25.0 // indirect
+	golang.org/x/term v0.24.0 // indirect
+	golang.org/x/text v0.18.0 // indirect
 	golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/sourcemap.v1 v1.0.5 // indirect

@@ -1,7 +1,7 @@
 package xparse
 
 const (
-	// Index is used to get all or one elem from results
+	// Index is used to get all or one elem from results, and support two format `_index or _i`
 	//  - nil value/not existed: get all
 	//  - array value: [0, 1] get elems[0] and elems[1]
 	//  - single value: 0 get elems[0]
@@ -12,7 +12,7 @@ const (
 	//  4. index: [0, 1, ...]
 	Index = "_index"
 
-	// Locator is the path/selector we used to find elem we want
+	// Locator is the path/selector we used to find elem we want, and support two format `_locator or _l`
 	//
 	// Supported types:
 	//  > string:
@@ -41,9 +41,11 @@ const (
 	// Attr
 	// by default we use the text of elem, but we can always specify the attr we want
 	// this is useful when parsing info from HTML
+	//
+	//  - if _attr is '__html' will return the raw HTML
 	Attr = "_attr"
 
-	// AttrRefine
+	// AttrRefine, and support two format `_attr_refine or _ar`
 	//  - bool(true): will automatically generate a method name
 	//  - string(_name): will add prefix refine so "_xxx" will be renamed to "_refine_name"
 	//  - string(refine_xxx/_refine_xxx): will be it

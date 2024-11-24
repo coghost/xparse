@@ -1,19 +1,23 @@
 package xparse
 
+// Core extraction configuration keys
 const (
-	// Index is used to get all or one elem from results, and support two format `_index or _i`
-	//  - nil value/not existed: get all
-	//  - array value: [0, 1] get elems[0] and elems[1]
-	//  - single value: 0 get elems[0]
-	// index has 4 types:
+	// Index specifies which elements to extract from results
+	// Formats: "_index" or "_i"
+	// Values:
+	//   - nil/not existed: get all elements
+	//   - array: [0,1] gets elements[0] and elements[1]
+	//   - single: 0 gets elements[0]
+	// Index types:
 	//  1. without index
 	//  2. index: ~ (index is null)
 	//  3. index: 0
 	//  4. index: [0, 1, ...]
+	//  5. index: 0,4 => 0,1,2,3
 	Index = "_index"
 
-	// Locator is the path/selector we used to find elem we want, and support two format `_locator or _l`
-	//
+	// Locator specifies the path/selector to find desired elements
+	// Formats: "_locator" or "_l"
 	// Supported types:
 	//  > string:
 	//   _locator: string
@@ -31,31 +35,34 @@ const (
 	//     key3: div.003
 	Locator = "_locator"
 
-	// ExtractPrevElem
+	// Element navigation keys
+	// ExtractPrevElem is used when no proper locator exists
 	// in most cases, we can use locator to get the elem we want,
 	// but in some rare cases, there is no proper locator to use, so we have to use this to get prev elem
 	ExtractPrevElem = "_extract_prev"
+	ExtractParent   = "_extract_parent"
+)
 
-	ExtractParent = "_extract_parent"
-
-	// Attr
-	// by default we use the text of elem, but we can always specify the attr we want
-	// this is useful when parsing info from HTML
-	//
-	//  - if _attr is '__html' will return the raw HTML
+// Attribute related configuration keys
+const (
+	// Attr specifies which attribute to extract
+	// Default is element text
+	// Special value "__html" returns raw HTML
 	Attr = "_attr"
 
-	// AttrRefine, and support two format `_attr_refine or _ar`
-	//  - bool(true): will automatically generate a method name
-	//  - string(_name): will add prefix refine so "_xxx" will be renamed to "_refine_name"
-	//  - string(refine_xxx/_refine_xxx): will be it
-	//  - string(not started with _): will be it
+	// AttrRefine specifies how to refine the extracted attribute
+	// Formats: "_attr_refine" or "_ar"
+	// Values:
+	//   - bool(true): auto-generate method name
+	//   - string(_name): adds prefix "refine" so "_xxx" becomes "_refine_name"
+	//   - string(refine_xxx/_refine_xxx): used as-is
+	//   - string(not started with _): used as-is
 	AttrRefine = "_attr_refine"
 
-	// AttrJoiner attr joiner
+	// AttrJoiner specifies the joiner for attributes
 	AttrJoiner = "_joiner"
 
-	// AttrIndex
+	// AttrIndex configuration:
 	//   - _joiner: ","
 	//   - _attr_refine: _attr_by_index
 	//   - _attr_index: 0
@@ -63,48 +70,45 @@ const (
 
 	AttrRegex = "_attr_regex"
 
-	// AttrPython run python script directly(python environment is required), and the print will be used as the attr value.
-	// i.e.:
-	//
+	// AttrPython runs Python script directly (requires Python environment)
+	// Example:
 	//   import sys
-	//   raw = sys.argv[1] # raw is globally registered, so we can it directly.
-	//   # previous two line is automatically added to following to code.
+	//   raw = sys.argv[1] # raw is globally registered
 	//   arr = raw.split("_")
-	//   print(arr[1]) # this is required, we need the output value as refined attr value.
-	//
-	// > please check `examples/html_yaml/0900.yaml` for demo.
+	//   print(arr[1]) # required: output value as refined attr value
 	AttrPython = "_attr_python"
 
-	// AttrJS like python, but with js.
-	// i.e.:
-	//   arr = raw.split("_") // by default, raw is registered
-	//   refined = arr[1] // refined is required, it the value we get from js.
-	//
-	//  - please check `examples/html_yaml/0901.yaml` for demo.
-	//  - JavaScript library: underscore(https://underscorejs.org/) is supported by default"
+	// AttrJS runs JavaScript code
+	// Example:
+	//   arr = raw.split("_") // raw is registered by default
+	//   refined = arr[1] // refined is required value
+	// Note: Underscore.js (https://underscorejs.org/) is supported by default
 	AttrJS = "_attr_js"
+)
 
-	// PostJoin is called when all attrs (as array) are parsed,
-	// it transforms the attrs array to string by joining the joiner
+// Post-processing configuration keys
+const (
+	// PostJoin joins parsed attributes array into string using joiner
 	PostJoin = "_post_join"
 
-	// Strip is a simple refiner
-	//  - if `_strip: true` or _strip not existed, will do `strings.TrimSpace`
-	//  - if `_strip: str` goes with a str, will do `strings.ReplaceAll(raw, str, "")`
-	//  - if `_strip: ["(", ")"]`, will replace one by one
-	//
-	//  WARN: this is called by default, you should use `_strip: false` to disable it
+	// Strip controls string trimming
+	// Values:
+	//   - if `_strip: true` or not existed: does strings.TrimSpace
+	//   - if `_strip: str`: does strings.ReplaceAll(raw, str, "")
+	//   - if `_strip: ["(", ")"]`: replaces one by one
+	// Note: Called by default, use `_strip: false` to disable
 	Strip = "_strip"
 
-	// Type is a simple type converter, returns the type specified,
-	//  without `_type: b/i/f`, returns as string
-	//
-	//  - b:bool
-	//  - i:int
-	//  - f:float
+	// Type converts output to specified type
+	// Without `_type: b/i/f`, returns as string
+	// Values:
+	//   - b: bool
+	//   - i: int
+	//   - f: float
 	Type = "_type"
 )
 
+// Abbreviated keys
 const (
 	LocatorAbbr    = "_l"
 	IndexAbbr      = "_i"
@@ -112,75 +116,60 @@ const (
 	TypeAbbr       = "_t"
 )
 
+// Special locators and internal constants
 const (
-	// JSONArrayRootLocator is a hard-coded symbol,
-	//
-	// since JSON is built on two structures:
-	//   - A collection of name/value pairs.
-	//   - An ordered list of values.
-	//
-	// and there is no root locator for ordered list,
-	// so we use this symbol when json file is with ordered list of values like: `[{...}, {...}]`
+	// JSONArrayRootLocator is used for JSON arrays without root object
+	// Used when JSON file has ordered list of values like: `[{...}, {...}]`
 	JSONArrayRootLocator = "*/*"
-)
 
-const (
+	// PrefixLocatorStub for multiple locators not in same stub
+	// Recalculates from base locator (map root)
+	// Example:
+	//   jobs:
+	//     _locator: jobs
+	//     _index:
+	//     taxo:
+	//       _locator: taxonomyAttributes
+	//       _index: 0
+	//       attr:
+	//       _locator:
+	//         - attributes
+	//         - ___.salarySnippet
+	PrefixLocatorStub = "___"
+
 	// _prefixRefine defines the word we use as the prefix of method of attr refiner
 	_prefixRefine = "_refine"
-
 	// AttrJoinerSep is a separator used to join an array to string
 	AttrJoinerSep = "|||"
 )
 
+// Special attribute values
 const (
-	// AttrJoinElemsText is a hard-coded value used after `reserved key: _attr`
-	//  used only when parsing HTML
-	//  it joins all elems inner text to string
-	//  WARN: this is rarely used, you can always find another to do same thing
+	// AttrJoinElemsText joins all elements inner text to string
+	// Used only when parsing HTML
+	// Warning: Rarely used, consider alternatives
 	AttrJoinElemsText = "__join_text"
 
-	// RefineWithKeyName is a hard-coded symbol, on behalf of the key name as a refiner method
-	//  we can use `_attr_refine: __key` instead of `_attr_refine: _refine_a_changeable_name`
-	/**
-	root:
-		# ...
-		a_changeable_name:
-			_locator: div.xxx
-			_attr: title
-			_attr_refine: __key
-	**/
-	RefineWithKeyName = "__key"
+	// AttrRawHTML returns the raw html of locator
+	AttrRawHTML = "__html"
 
-	// PrefixLocatorStub
-	// is used for multiple locators those not in same stub,
-	// so we recalculated from its base locator(as is the map root)
-	/**
-		jobs:
-			_locator: jobs
-			_index:
-			# ...
-			taxo:
-				_locator: taxonomyAttributes
-				_index: 0
-				attr:
-				_locator:
-					- attributes
-					- ___.salarySnippet
-	**/
-	//  - so `___.salarySnippet` will be calculated as `jobs[jobs.index].salarySnippet`
-	//  - and `attributes` still is calculated from `taxo`
-	PrefixLocatorStub = "___"
+	// RefineWithKeyName uses key name as refiner method
+	// Example:
+	//   root:
+	//     a_changeable_name:
+	//       _locator: div.xxx
+	//       _attr: title
+	//       _attr_refine: __key
+	RefineWithKeyName = "__key"
 )
 
+// Type constants
 const (
-	AttrTypeB = "b"
-	AttrTypeF = "f"
-	AttrTypeI = "i"
+	AttrTypeB = "b" // Boolean
+	AttrTypeF = "f" // Float
+	AttrTypeI = "i" // Integer
 
-	// time
-
-	// AttrTypeT quick mode
-	AttrTypeT = "t"
-	// AttrTypeT1 search mode, a bit slower
-	AttrTypeT1 = "t1"
+	// Time types
+	AttrTypeT  = "t"  // Quick mode
+	AttrTypeT1 = "t1" // Search mode
 )

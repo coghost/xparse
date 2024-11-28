@@ -242,7 +242,7 @@ func (p *JSONParser) handleStub(raw interface{}, result gjson.Result) (interface
 	return raw, result
 }
 
-func (p *JSONParser) getOneSelector(key string, sel interface{}, cfg map[string]interface{}, result gjson.Result) (iface interface{}) {
+func (p *JSONParser) getOneSelector(key string, sel interface{}, cfg map[string]interface{}, result gjson.Result) (iface interface{}) { //nolint
 	index, existed := cfgIndex(cfg)
 	if index == nil {
 		if !existed {
@@ -260,7 +260,7 @@ func (p *JSONParser) getOneSelector(key string, sel interface{}, cfg map[string]
 
 		indexes := ParseNumberRanges(val)
 		if len(indexes) != 0 {
-			var d []gjson.Result
+			var results []gjson.Result
 
 			for _, idx := range indexes {
 				i := idx
@@ -268,10 +268,12 @@ func (p *JSONParser) getOneSelector(key string, sel interface{}, cfg map[string]
 					i = idx + total
 				}
 
-				d = append(d, result.Array()[i])
+				if i < total {
+					results = append(results, result.Array()[i])
+				}
 			}
 
-			return d
+			return results
 		}
 
 		arr := strings.Split(val, ",")

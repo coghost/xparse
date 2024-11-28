@@ -274,17 +274,20 @@ func (p *HTMLParser) getOneSelector(key string, sel interface{},
 
 		indexes := ParseNumberRanges(val)
 		if len(indexes) != 0 {
-			var d []*goquery.Selection
+			var selections []*goquery.Selection
 
 			for _, idx := range indexes {
 				i := idx
 				if idx < 0 {
 					i = idx + total
 				}
-				d = append(d, elems.Eq(i))
+
+				if i < total {
+					selections = append(selections, elems.Eq(i))
+				}
 			}
 
-			return d, isComplexSel
+			return selections, isComplexSel
 		}
 
 		arr := strings.Split(val, ",")
@@ -527,7 +530,6 @@ func (p *HTMLParser) getRawAttr(cfg map[string]interface{}, selection *goquery.S
 
 	if attr == "__html" {
 		v, err := selection.Html()
-
 		if err != nil {
 			panic(v)
 		}

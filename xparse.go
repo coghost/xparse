@@ -242,7 +242,6 @@ func (p *Parser) MustDataAsJSON(args ...interface{}) string {
 
 func (p *Parser) DataAsStruct(structObj any, args ...interface{}) error {
 	raw, err := p.DataAsJSON(args...)
-
 	if err != nil {
 		return err
 	}
@@ -555,10 +554,14 @@ func (p *Parser) loadPreDefined(mtdName string) (func(raw ...interface{}) interf
 		return p.BindRank, true
 	case "RefineRank":
 		return p.RefineRank, true
+	case "EnrichURL":
+		return p.EnrichURL, true
 	case "EnrichUrl":
 		return p.EnrichUrl, true
 	case "RefineEncodedJson":
-		return p.RefineEncodedJson, true
+		return p.RefineEncodedJSON, true
+	case "RefineEncodedJSON":
+		return p.RefineEncodedJSON, true
 	default:
 		return nil, false
 	}

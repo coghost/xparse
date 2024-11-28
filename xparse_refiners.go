@@ -18,11 +18,19 @@ func (p *Parser) Mock(raw ...interface{}) interface{} {
 	return raw[0]
 }
 
-func (p *Parser) RefineUrl(raw ...interface{}) interface{} {
+func (p *Parser) RefineURL(raw ...interface{}) interface{} {
 	return p.EnrichUrl(raw...)
 }
 
-func (p *Parser) EnrichUrl(raw ...interface{}) interface{} {
+func (p *Parser) RefineUrl(raw ...interface{}) interface{} { //nolint
+	return p.EnrichUrl(raw...)
+}
+
+func (p *Parser) EnrichURL(raw ...interface{}) interface{} {
+	return p.EnrichUrl(raw...)
+}
+
+func (p *Parser) EnrichUrl(raw ...interface{}) interface{} { //nolint
 	domain := p.config.String("__raw.site_url")
 	uri := EnrichURL(domain, raw[0])
 
@@ -147,7 +155,11 @@ func (p *Parser) RefineAttrByIndex(raw ...interface{}) interface{} {
 	return txt
 }
 
-func (p *Parser) RefineEncodedJson(raw ...interface{}) interface{} {
+func (p *Parser) RefineEncodedJSON(raw ...interface{}) interface{} {
+	return p.RefineEncodedJson(raw...)
+}
+
+func (p *Parser) RefineEncodedJson(raw ...interface{}) interface{} { //nolint
 	txt := p.GetStrBySplitAtIndex(raw[0], "", -1)
 
 	content, err := base64.StdEncoding.DecodeString(txt)

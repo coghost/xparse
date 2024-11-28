@@ -41,6 +41,7 @@ func ParseNumberRanges(input string) []int {
 	}
 
 	parts := strings.Split(input, ",")
+
 	var result []int
 
 	for _, part := range parts {
@@ -54,8 +55,10 @@ func ParseNumberRanges(input string) []int {
 
 		// Handle ranges with either - or ~
 		if isRange := strings.Count(part, "-") >= 1 || strings.Contains(part, "~"); isRange {
-			var rangeParts []string
-			var inclusive bool
+			var (
+				rangeParts []string
+				inclusive  bool
+			)
 
 			// Need special handling for negative numbers in ranges
 			if strings.Contains(part, "~") {
@@ -68,6 +71,7 @@ func ParseNumberRanges(input string) []int {
 				if lastDash <= 0 { // Invalid range or single negative number
 					continue
 				}
+
 				rangeParts = []string{
 					part[:lastDash],
 					part[lastDash+1:],
@@ -81,6 +85,7 @@ func ParseNumberRanges(input string) []int {
 
 			start, err1 := strconv.Atoi(strings.TrimSpace(rangeParts[0]))
 			end, err2 := strconv.Atoi(strings.TrimSpace(rangeParts[1]))
+
 			if err1 != nil || err2 != nil {
 				continue // Skip invalid numbers
 			}

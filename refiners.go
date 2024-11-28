@@ -95,7 +95,7 @@ func UpdateRefiners(parser interface{}, opts ...RefOptFunc) {
 func bindRefiners(parser interface{}, attrs []string, opts ...RefOptFunc) {
 	refiners, _ := GetField(parser, "Refiners").Interface().(map[string]func(raw ...interface{}) interface{})
 
-	//nolint:stylecheck
+	//nolint:revive,stylecheck
 	for _, mtd_name := range attrs {
 		mtdName := strcase.ToCamel(mtd_name)
 		method := GetMethod(parser, mtdName)

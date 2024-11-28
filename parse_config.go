@@ -33,7 +33,7 @@ func cfgAttrRefine(cfg map[string]interface{}) (interface{}, bool) {
 }
 
 // mustCfgIndex must get _index's config
-func mustCfgType(cfg map[string]interface{}) interface{} {
+func mustCfgType(cfg map[string]interface{}) interface{} { //nolint
 	return must(cfgType, cfg)
 }
 

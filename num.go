@@ -22,7 +22,7 @@ const (
 	_precision     = 2
 )
 
-var ErrorNoNumbers = errors.New("no number found")
+var ErrNoNumbers = errors.New("no number found")
 
 type NumOpts struct {
 	chars string
@@ -64,7 +64,7 @@ func CharToNum(rawStr string, opts ...NumOptFunc) (v interface{}, e error) {
 	joinStr := strings.Join(c, "")
 
 	if joinStr == "" {
-		return joinStr, ErrorNoNumbers
+		return joinStr, ErrNoNumbers
 	}
 
 	switch opt.dft.(type) {

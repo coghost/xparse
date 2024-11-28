@@ -270,6 +270,23 @@ func (p *HTMLParser) getOneSelector(key string, sel interface{},
 	case int, int64, uint64:
 		iface = elems.Eq(cast.ToInt(val))
 	case string:
+		total := len(elems.Nodes)
+
+		indexes := ParseNumberRanges(val)
+		if len(indexes) != 0 {
+			var d []*goquery.Selection
+
+			for _, idx := range indexes {
+				i := idx
+				if idx < 0 {
+					i = idx + total
+				}
+				d = append(d, elems.Eq(i))
+			}
+
+			return d, isComplexSel
+		}
+
 		arr := strings.Split(val, ",")
 		if len(arr) != _rangeIndexLen {
 			panic(xpretty.Redf("range index format must be (a-b), but (%s is %T: %v)", key, val, val))

@@ -31,6 +31,8 @@ type NumOpts struct {
 
 type NumOptFunc func(o *NumOpts)
 
+// Chars the chars will be kept in CharToNum
+// usually used as "decimal" like "."
 func Chars(s string) NumOptFunc {
 	return func(o *NumOpts) {
 		o.chars = s

@@ -256,12 +256,29 @@ func (p *JSONParser) getOneSelector(key string, sel interface{}, cfg map[string]
 	case int, int64, uint64:
 		return p.getResultAtIndex(sel, result, cast.ToInt(val))
 	case string:
+		total := len(result.Array())
+
+		indexes := ParseNumberRanges(val)
+		if len(indexes) != 0 {
+			var d []gjson.Result
+
+			for _, idx := range indexes {
+				i := idx
+				if idx < 0 {
+					i = idx + total
+				}
+
+				d = append(d, result.Array()[i])
+			}
+
+			return d
+		}
+
 		arr := strings.Split(val, ",")
 		if len(arr) != _rangeIndexLen {
 			panic(xpretty.Redf("range index format must be (a-b), but (%s is %T: %v)", key, val, val))
 		}
 
-		total := len(result.Array())
 		start, end := 0, total
 
 		if v := arr[0]; v != "" {

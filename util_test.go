@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -84,4 +85,31 @@ func (s *UtilSuite) Test03_load() {
 	}
 
 	s.Equal(want, cf.Data())
+}
+
+func TestParseNumberRanges(t *testing.T) {
+	assert := assert.New(t)
+
+	// Empty input
+	assert.Equal([]int{}, ParseNumberRanges(""))
+
+	// Single numbers
+	assert.Equal([]int{0}, ParseNumberRanges("0"))
+	assert.Equal([]int{-1}, ParseNumberRanges("-1"))
+
+	// Multiple numbers
+	assert.Equal([]int{0, 1, 2, 3}, ParseNumberRanges("0,1,2,3"))
+	assert.Equal([]int{-2, -1, 0, 1}, ParseNumberRanges("-2,-1,0,1"))
+
+	// Inclusive ranges
+	assert.Equal([]int{0, 1, 2, 3}, ParseNumberRanges("0-3"))
+	assert.Equal([]int{-2, -1, 0, 1}, ParseNumberRanges("-2-1"))
+
+	// Exclusive ranges
+	assert.Equal([]int{0, 1, 2}, ParseNumberRanges("0~3"))
+	assert.Equal([]int{-2, -1, 0}, ParseNumberRanges("-2~1"))
+
+	// Mixed formats with spaces
+	assert.Equal([]int{0, 3, 4, 5, 6, 7, 13, 14}, ParseNumberRanges("0, 3-7, 13~15"))
+	assert.Equal([]int{-3, -2, -1, 0, 1, 2}, ParseNumberRanges("-3~0, 0-2"))
 }

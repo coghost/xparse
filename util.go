@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/gookit/config/v2"
@@ -15,6 +16,87 @@ import (
 
 type Basic interface {
 	bool | int | float32 | float64 | string
+}
+
+// ParseNumberRanges converts a string of numbers and ranges into an integer slice.
+// The input string can contain:
+//   - Single numbers: "0", "-1" or "1, 2, -3"
+//   - Inclusive ranges using dash: "0-3", "-2-1" (equivalent to "-2,-1,0,1")
+//   - Exclusive ranges using tilde: "0~3", "-2~1" (equivalent to "-2,-1,0")
+//   - Combination of both: "-1, 3-7, -5~-2"
+//
+// Example inputs and outputs:
+//   - "-1" → [-1]
+//   - "-2, -1, 0, 1" → [-2,-1,0,1]
+//   - "-2-1" → [-2,-1,0,1]  (inclusive)
+//   - "-2~1" → [-2,-1,0]    (exclusive)
+//   - "-3, 0-2, -1~1" → [-3,0,1,2,-1,0]
+//   - WARN: THIS IS NOT WORKING "-3--1, 0-2", use "-3~0, 0-2"
+//
+// Whitespace around numbers and delimiters is ignored.
+// Invalid numbers or ranges are silently skipped.
+func ParseNumberRanges(input string) []int {
+	if input == "" {
+		return []int{}
+	}
+
+	parts := strings.Split(input, ",")
+	var result []int
+
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+
+		// First try to parse as a single number (including negative)
+		if num, err := strconv.Atoi(part); err == nil {
+			result = append(result, num)
+			continue
+		}
+
+		// Handle ranges with either - or ~
+		if isRange := strings.Count(part, "-") >= 1 || strings.Contains(part, "~"); isRange {
+			var rangeParts []string
+			var inclusive bool
+
+			// Need special handling for negative numbers in ranges
+			if strings.Contains(part, "~") {
+				rangeParts = strings.Split(part, "~")
+				inclusive = false
+			} else {
+				// For negative numbers, we need to be careful with the split
+				// Find the last occurrence of "-" for the range operator
+				lastDash := strings.LastIndex(part, "-")
+				if lastDash <= 0 { // Invalid range or single negative number
+					continue
+				}
+				rangeParts = []string{
+					part[:lastDash],
+					part[lastDash+1:],
+				}
+				inclusive = true
+			}
+
+			if len(rangeParts) != 2 {
+				continue // Skip invalid ranges
+			}
+
+			start, err1 := strconv.Atoi(strings.TrimSpace(rangeParts[0]))
+			end, err2 := strconv.Atoi(strings.TrimSpace(rangeParts[1]))
+			if err1 != nil || err2 != nil {
+				continue // Skip invalid numbers
+			}
+
+			endValue := end
+			if !inclusive {
+				endValue = end - 1
+			}
+
+			for i := start; i <= endValue; i++ {
+				result = append(result, i)
+			}
+		}
+	}
+
+	return result
 }
 
 func PanicIfErr(err error) {

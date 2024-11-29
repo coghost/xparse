@@ -14,7 +14,6 @@ import (
 	"github.com/coghost/xpretty"
 	"github.com/ghodss/yaml"
 	"github.com/gookit/config/v2"
-	"github.com/iancoleman/strcase"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cast"
 	"github.com/thoas/go-funk"
@@ -290,7 +289,7 @@ func (p *Parser) parseAttrs(_ string, key string, config interface{}) {
 
 			attr := cfg[Attr]
 			name := p.convertAttrRefineToSnakeCaseName(key, refine, attr)
-			name = strcase.ToCamel(name)
+			name = GetCamelRefinerName(name)
 			p.AttrToBeRefined = append(p.AttrToBeRefined, name)
 			p.AttrToBeRefined = funk.UniqString(p.AttrToBeRefined)
 
@@ -515,8 +514,8 @@ func (p *Parser) isMethodExisted(snakeCaseName string) (rv reflect.Value, b bool
 	// automatically convert snake_case(which is written in yaml) to CamelCase or camelCase
 	// first check camelCase (private method preferred)
 	// if not found then check CamelCase
-	mtdName := strcase.ToLowerCamel(snakeCaseName)
-	MtdName := strcase.ToCamel(snakeCaseName)
+	mtdName := GetLowerCamelRefinerName(snakeCaseName)
+	MtdName := GetCamelRefinerName(snakeCaseName)
 
 	method := reflect.ValueOf(p).MethodByName(mtdName)
 	if funk.IsEmpty(method) {
@@ -530,8 +529,8 @@ func (p *Parser) isMethodExisted(snakeCaseName string) (rv reflect.Value, b bool
 }
 
 func (p *Parser) getRefinerFn(snakeCaseName string) (func(raw ...interface{}) interface{}, bool) {
-	mtdName := strcase.ToLowerCamel(snakeCaseName)
-	MtdName := strcase.ToCamel(snakeCaseName)
+	mtdName := GetLowerCamelRefinerName(snakeCaseName)
+	MtdName := GetCamelRefinerName(snakeCaseName)
 
 	injectFn, found := p.Refiners[mtdName]
 	if !found {

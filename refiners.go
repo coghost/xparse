@@ -97,7 +97,7 @@ func bindRefiners(parser interface{}, attrs []string, opts ...RefOptFunc) {
 
 	//nolint:revive,stylecheck
 	for _, mtd_name := range attrs {
-		mtdName := strcase.ToCamel(mtd_name)
+		mtdName := GetCamelRefinerName(mtd_name)
 		method := GetMethod(parser, mtdName)
 
 		if funk.IsEmpty(method) {
@@ -106,4 +106,28 @@ func bindRefiners(parser interface{}, attrs []string, opts ...RefOptFunc) {
 
 		refiners[mtdName], _ = method.Interface().(func(raw ...interface{}) interface{})
 	}
+}
+
+func GetCamelRefinerName(input string) string {
+	return fixAcronyms(strcase.ToCamel(input))
+}
+
+func GetLowerCamelRefinerName(input string) string {
+	return fixAcronyms(strcase.ToLowerCamel(input))
+}
+
+var commonAcronyms = map[string]string{
+	"Id":   "ID",
+	"Url":  "URL",
+	"Uri":  "URI",
+	"Json": "JSON",
+	// Add more as needed
+}
+
+func fixAcronyms(s string) string {
+	for k, v := range commonAcronyms {
+		s = strings.Replace(s, k, v, -1)
+	}
+
+	return s
 }

@@ -52,8 +52,8 @@ func loadYamlConfig(ymlFile string) []byte {
 }
 
 func (p *BasicParser) RefineReviews(raw ...interface{}) interface{} {
-	txt := p.GetStrBySplitAtIndex(raw[0], "\n", 0)
-	txt = p.GetStrBySplitAtIndex(txt, "(", 1)
+	txt := p.SplitAtIndex(raw[0], "\n", 0)
+	txt = p.SplitAtIndex(txt, "(", 1)
 	txt = strings.ReplaceAll(txt, ",", "")
 
 	return xparse.MustCharToNum(txt)

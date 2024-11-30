@@ -17,7 +17,7 @@ func (p *%[3]s) %[1]s(raw ...interface{}) interface{} {
 	// TODO: raw[0] is the interface of string value parsed
 	// TODO: raw[1] is map/*config.Config
 	// TODO: raw[2] is *goquery.Selection/gjson.Result
-	txt := p.GetStrBySplitAtIndex(raw[0], "", -1)
+	txt := p.SplitAtIndex(raw[0], "", -1)
 	return txt
 }
 `

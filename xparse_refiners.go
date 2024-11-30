@@ -73,27 +73,31 @@ func (p *Parser) Trim(raw ...interface{}) interface{} {
 	return p.TrimByFields(raw...)
 }
 
-// GetStrBySplitAtIndex
-// split raw to slice and then return element at index
+// SplitAtIndex splits a string by separator and returns the element at specified index
+//
+// Parameters:
+//   - raw: input value to be converted to string
+//   - sep: separator to split the string
+//   - index: desired index (negative index counts from end)
+//
+// Returns:
+//   - The element at index after splitting
+//   - If sep is empty or not found, returns original string
+//   - If index out of bounds, returns first/last element
+func (p *Parser) SplitAtIndex(raw interface{}, sep string, index int) string {
+	return NewSplitter(raw, sep, index).Split()
+}
+
+// Deprecated: Use SplitAtIndex instead. This function will be removed in a future version.
+//
+// GetStrBySplitAtIndex splits raw to slice and returns element at index
 //
 //   - if sep not in raw, returns raw
 //   - if index < 0, reset index to len() + index
 //   - if index > total length, returns the last one
 //   - else returns element at index
 func (p *Parser) GetStrBySplitAtIndex(raw interface{}, sep string, index int) string {
-	str := cast.ToString(raw)
-	if sep == "" || !strings.Contains(str, sep) {
-		return str
-	}
-
-	arr := strings.Split(str, sep)
-	if index > len(arr)-1 {
-		index = len(arr) - 1
-	} else if index < 0 {
-		index = len(arr) + index
-	}
-
-	return arr[index]
+	return NewSplitter(raw, sep, index).Split()
 }
 
 func (p *Parser) GetStrBySplit(raw interface{}, sep string, offset int, withSep bool) string {
@@ -149,7 +153,7 @@ func (p *Parser) RefineAttrByIndex(raw ...interface{}) interface{} {
 		sep, _ = txt.(string)
 	}
 
-	txt := p.GetStrBySplitAtIndex(raw[0], sep, idx)
+	txt := p.SplitAtIndex(raw[0], sep, idx)
 	txt = strings.TrimSpace(txt)
 
 	return txt
@@ -160,7 +164,7 @@ func (p *Parser) RefineEncodedJSON(raw ...interface{}) interface{} {
 }
 
 func (p *Parser) RefineEncodedJson(raw ...interface{}) interface{} { //nolint
-	txt := p.GetStrBySplitAtIndex(raw[0], "", -1)
+	txt := p.SplitAtIndex(raw[0], "", -1)
 
 	content, err := base64.StdEncoding.DecodeString(txt)
 	if err != nil {

@@ -321,3 +321,55 @@ func JoinURLlWithRef(baseURL, refURL string) (*url.URL, error) {
 
 	return base.ResolveReference(parsedURL), nil
 }
+
+// StringToBinary converts various boolean string representations to binary integers (1/0)
+func StringToBinary(value string) int {
+	// Handle empty or nil cases
+	if value == "" {
+		return 0
+	}
+
+	// Normalize input
+	normalized := strings.TrimSpace(strings.ToLower(value))
+
+	// Define truth values
+	trueValues := map[string]bool{
+		"true": true,
+		"1":    true,
+		"yes":  true,
+		"y":    true,
+		"on":   true,
+		"t":    true,
+	}
+
+	if trueValues[normalized] {
+		return 1
+	}
+	return 0
+}
+
+// SafeGetFromMap safely retrieves a typed value from an interface{} that should be a map
+// Returns zero value of type T if:
+// - raw is not a map[string]interface{}
+// - key doesn't exist
+// - value cannot be type asserted to T
+func SafeGetFromMap[T any](raw interface{}, key string) T {
+	var zero T
+
+	m, ok := raw.(map[string]interface{})
+	if !ok || key == "" {
+		return zero
+	}
+
+	val, ok := m[key]
+	if !ok {
+		return zero
+	}
+
+	typedVal, ok := val.(T)
+	if !ok {
+		return zero
+	}
+
+	return typedVal
+}

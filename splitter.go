@@ -6,21 +6,21 @@ import (
 	"github.com/spf13/cast"
 )
 
-// StringSplitter provides a fluent interface for splitting strings in sequence
+// Splitter provides a fluent interface for splitting strings in sequence
 // It allows chaining multiple split operations with specified delimiters and indexes
 // When a separator appears at the end of the string, it creates an empty string element
 // Example: "a," splits to ["a", ""]
-type StringSplitter struct {
-	raw   string
-	rules []SplitRule
+type Splitter struct {
+	source string
+	rules  []SplitRule
 
-	trimTrailingEmpty bool
+	trimTrailing bool
 }
 
 // NewSplitter creates a StringSplitter with a single rule, similar to SplitAtIndex usage
 // Returns *StringSplitter for immediate Split() call
-func NewSplitter(raw interface{}, sep string, index int) *StringSplitter {
-	return NewStringSplitter(raw).WithRule(sep, index)
+func NewSplitter(raw interface{}, sep string, index int) *Splitter {
+	return NewStringSplitter(raw).By(sep, index)
 }
 
 // NewStringSplitter creates a new StringSplitter instance
@@ -34,57 +34,58 @@ func NewSplitter(raw interface{}, sep string, index int) *StringSplitter {
 //	    WithRule("=", 1).     // gets "world&foo=bar"
 //	    WithRule("&", 0).     // gets "world"
 //	    Split()
-func NewStringSplitter(raw interface{}) *StringSplitter {
+func NewStringSplitter(raw interface{}) *Splitter {
 	if raw == nil {
-		return &StringSplitter{trimTrailingEmpty: true} // default to true
+		return &Splitter{trimTrailing: true} // default to true
 	}
 
 	str := strings.TrimSpace(cast.ToString(raw))
 
-	return &StringSplitter{
-		raw:   str,
-		rules: make([]SplitRule, 0),
+	return &Splitter{
+		source: str,
+		rules:  make([]SplitRule, 0),
 
-		trimTrailingEmpty: true, // default to true
+		trimTrailing: true, // default to true
 	}
 }
 
-// WithRule adds a split rule to the chain
+// By adds a split rule to the chain
 //   - delimiter: the string to split on
 //   - indexes: optional slice of indexes, first one is used, defaults to 0
 //
 // Returns the StringSplitter for method chaining
-func (ss *StringSplitter) WithRule(delimiter string, indexes ...int) *StringSplitter {
+func (s *Splitter) By(delimiter string, indexes ...int) *Splitter {
 	index := FirstOrDefaultArgs(0, indexes...)
-	ss.rules = append(ss.rules, NewSplitRule(delimiter, index))
+	s.rules = append(s.rules, NewSplitRule(delimiter, index))
 
-	return ss
+	return s
 }
 
-// SetTrimTrailingEmpty configures whether to trim trailing empty values
-func (ss *StringSplitter) SetTrimTrailingEmpty(trim bool) *StringSplitter {
-	ss.trimTrailingEmpty = trim
-	return ss
+// TrimTrailing configures whether to trim trailing empty values
+func (s *Splitter) TrimTrailing(enabled bool) *Splitter {
+	s.trimTrailing = enabled
+	return s
 }
 
 // Split applies all rules in sequence and returns the final result.
 //   - Returns empty string if input is empty or any split operation fails
 //   - Returns interface{} to maintain compatibility with existing code
-func (ss *StringSplitter) Split() string {
-	if ss.raw == "" {
+func (s *Splitter) String() string {
+	if s.source == "" {
 		return ""
 	}
 
-	result := ss.raw
-	for _, rule := range ss.rules {
+	result := s.source
+	for _, rule := range s.rules {
 		if rule.Delimiter == "" || !strings.Contains(result, rule.Delimiter) {
-			return strings.TrimSpace(result)
+			result = strings.TrimSpace(result)
+			continue
 		}
 
 		parts := strings.Split(result, rule.Delimiter)
 
 		// Handle trailing empty values before processing index
-		if ss.trimTrailingEmpty {
+		if s.trimTrailing {
 			lastNonEmpty := -1
 
 			for i := 0; i < len(parts); i++ {
@@ -113,6 +114,13 @@ func (ss *StringSplitter) Split() string {
 	}
 
 	return result
+}
+
+// Deprecated: Use String() instead.
+//
+//	Split is an alias for String() for backward compatibility
+func (s *Splitter) Split() string {
+	return s.String()
 }
 
 // SplitRule defines a single split operation configuration

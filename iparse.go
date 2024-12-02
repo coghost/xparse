@@ -39,12 +39,14 @@ type IParser interface {
 }
 
 func DoParse(parser IParser, opts ...ParseOptFunc) interface{} {
-	opt := &ParseOpts{}
+	opt := &ParseOpts{
+		promptCfg: NewPromptConfig(),
+	}
 	bindParseOpts(opt, opts...)
 
 	parser.BindPresetData(opt.preset)
 	parser.ToggleDevMode(true)
-	UpdateRefiners(parser)
+	UpdateRefiners(parser, WithRefPromptConfig(opt.promptCfg))
 	parser.DoParse()
 	// parser.PostDoParse()
 
@@ -53,10 +55,9 @@ func DoParse(parser IParser, opts ...ParseOptFunc) interface{} {
 
 type ParseOpts struct {
 	dataAsSlice bool
-
-	preset map[string]interface{}
-
-	rootKey string
+	preset      map[string]interface{}
+	rootKey     string
+	promptCfg   *PromptConfig
 }
 
 type ParseOptFunc func(o *ParseOpts)
@@ -83,5 +84,11 @@ func WithPresetData(preset map[string]interface{}) ParseOptFunc {
 func WithRootKey(s string) ParseOptFunc {
 	return func(o *ParseOpts) {
 		o.rootKey = s
+	}
+}
+
+func WithPromptConfig(cfg *PromptConfig) ParseOptFunc {
+	return func(o *ParseOpts) {
+		o.promptCfg = cfg
 	}
 }

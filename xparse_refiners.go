@@ -3,8 +3,11 @@ package xparse
 import (
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
+	"os"
 	"strings"
 
+	"github.com/coghost/xpretty"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cast"
 )
@@ -57,6 +60,41 @@ func (p *Parser) RefineLower(raw ...interface{}) interface{} {
 	return strings.ToLower(cast.ToString(raw[0]))
 }
 
+func (p *Parser) EnsureNotSlice(v interface{}, methodName string) {
+	switch v.(type) {
+	case []interface{}, []string, []int:
+		xpretty.RedPrintln(fmt.Sprintf("\n⚠️  WARNING: %s received a slice, expected a single value.\n"+
+			"💡 Hint: Did you pass 'raw' instead of 'raw[0]'?\n", methodName))
+		os.Exit(0)
+	}
+}
+
+func (p *Parser) ToString(v interface{}) string {
+	p.EnsureNotSlice(v, "ToString")
+	return cast.ToString(v)
+}
+
+func (p *Parser) ToInt64(v interface{}) int64 {
+	p.EnsureNotSlice(v, "ToInt64")
+	return cast.ToInt64(v)
+}
+
+func (p *Parser) SafeGetConfigKey(raw interface{}, key string) string {
+	return SafeGetFromMap[string](raw, key)
+}
+
+// StringToBinary converts various boolean string representations to binary integers (1/0)
+// Returns 1 for the following true values (case-insensitive):
+//   - "true", "t"
+//   - "1"
+//   - "yes", "y"
+//   - "on"
+//
+// Returns 0 for any other values, including empty strings and nil
+func (p *Parser) StringToBinary(raw interface{}) int {
+	return StringToBinary(p.ToString(raw))
+}
+
 // TrimByFields removes all "\r\n\t" and keep one space at most
 //
 //   - 1. strings.TrimSpace
@@ -85,7 +123,7 @@ func (p *Parser) Trim(raw ...interface{}) interface{} {
 //   - If sep is empty or not found, returns original string
 //   - If index out of bounds, returns first/last element
 func (p *Parser) SplitAtIndex(raw interface{}, sep string, index int) string {
-	return NewSplitter(raw, sep, index).Split()
+	return NewSplitter(raw, sep, index).String()
 }
 
 // Deprecated: Use SplitAtIndex instead. This function will be removed in a future version.
@@ -97,7 +135,7 @@ func (p *Parser) SplitAtIndex(raw interface{}, sep string, index int) string {
 //   - if index > total length, returns the last one
 //   - else returns element at index
 func (p *Parser) GetStrBySplitAtIndex(raw interface{}, sep string, index int) string {
-	return NewSplitter(raw, sep, index).Split()
+	return NewSplitter(raw, sep, index).String()
 }
 
 func (p *Parser) GetStrBySplit(raw interface{}, sep string, offset int, withSep bool) string {

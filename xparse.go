@@ -540,7 +540,7 @@ func (p *Parser) getRefinerFn(snakeCaseName string) (func(raw ...interface{}) in
 				return fn, b
 			}
 
-			prompt(p, mtdName, MtdName)
+			prompts(p, mtdName, MtdName, nil)
 		}
 	}
 

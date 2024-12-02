@@ -41,6 +41,8 @@ var hintSep = strings.Repeat("-", 32) //nolint
 type RefOpts struct {
 	methods  []string
 	hintType int
+
+	promptCfg *PromptConfig
 }
 
 type RefOptFunc func(o *RefOpts)
@@ -60,6 +62,12 @@ func WithMethods(marr []string) RefOptFunc {
 func WithHintType(i int) RefOptFunc {
 	return func(o *RefOpts) {
 		o.hintType = i
+	}
+}
+
+func WithRefPromptConfig(cfg *PromptConfig) RefOptFunc {
+	return func(o *RefOpts) {
+		o.promptCfg = cfg
 	}
 }
 
@@ -93,6 +101,9 @@ func UpdateRefiners(parser interface{}, opts ...RefOptFunc) {
 }
 
 func bindRefiners(parser interface{}, attrs []string, opts ...RefOptFunc) {
+	opt := RefOpts{hintType: 1}
+	bindRefOpts(&opt, opts...)
+
 	refiners, _ := GetField(parser, "Refiners").Interface().(map[string]func(raw ...interface{}) interface{})
 
 	//nolint:revive,stylecheck
@@ -101,7 +112,7 @@ func bindRefiners(parser interface{}, attrs []string, opts ...RefOptFunc) {
 		method := GetMethod(parser, mtdName)
 
 		if funk.IsEmpty(method) {
-			prompt(parser, mtd_name, mtdName, opts...)
+			prompts(parser, mtd_name, mtdName, opt.promptCfg)
 		}
 
 		refiners[mtdName], _ = method.Interface().(func(raw ...interface{}) interface{})

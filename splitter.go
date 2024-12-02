@@ -14,7 +14,8 @@ type Splitter struct {
 	source string
 	rules  []SplitRule
 
-	trimTrailing bool
+	trimTrailing  bool
+	keepLastFound bool // shorter name
 }
 
 // NewSplitter creates a StringSplitter with a single rule, similar to SplitAtIndex usage
@@ -45,7 +46,8 @@ func NewStringSplitter(raw interface{}) *Splitter {
 		source: str,
 		rules:  make([]SplitRule, 0),
 
-		trimTrailing: true, // default to true
+		trimTrailing:  true,
+		keepLastFound: true,
 	}
 }
 
@@ -67,6 +69,12 @@ func (s *Splitter) TrimTrailing(enabled bool) *Splitter {
 	return s
 }
 
+// KeepLastFound configures whether to keep the last found value as return value of String()
+func (s *Splitter) KeepLastFound(enabled bool) *Splitter {
+	s.keepLastFound = enabled
+	return s
+}
+
 // Split applies all rules in sequence and returns the final result.
 //   - Returns empty string if input is empty or any split operation fails
 //   - Returns interface{} to maintain compatibility with existing code
@@ -77,9 +85,14 @@ func (s *Splitter) String() string {
 
 	result := s.source
 	for _, rule := range s.rules {
+		// If delimiter is empty or not found
 		if rule.Delimiter == "" || !strings.Contains(result, rule.Delimiter) {
-			result = strings.TrimSpace(result)
-			continue
+			if s.keepLastFound {
+				result = strings.TrimSpace(result)
+				continue
+			}
+			// Return the last valid result instead of empty string
+			return ""
 		}
 
 		parts := strings.Split(result, rule.Delimiter)

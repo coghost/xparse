@@ -192,6 +192,46 @@ func TestStringSplitter(t *testing.T) {
 			},
 			expected: "6300952",
 		},
+		{
+			name:  "delimiter not found with KeepOriginal(false)",
+			input: "hello world",
+			rules: func(s *Splitter) *Splitter {
+				return s.KeepLastFound(false).By("=", 0)
+			},
+			expected: "",
+		},
+		{
+			name:  "delimiter not found with KeepOriginal(true)",
+			input: "hello world",
+			rules: func(s *Splitter) *Splitter {
+				return s.KeepLastFound(true).By("=", 0)
+			},
+			expected: "hello world",
+		},
+		{
+			name:  "multiple rules with delimiter not found",
+			input: "key1=value1",
+			rules: func(s *Splitter) *Splitter {
+				return s.KeepLastFound(false).By(",", 0).By("=", 1)
+			},
+			expected: "",
+		},
+		{
+			name:  "multiple rules with some delimiter found",
+			input: "key1=value1",
+			rules: func(s *Splitter) *Splitter {
+				return s.KeepLastFound(false).By("=", 1).By(",", 0)
+			},
+			expected: "",
+		},
+		{
+			name:  "empty delimiter with KeepOriginal(false)",
+			input: "abc",
+			rules: func(s *Splitter) *Splitter {
+				return s.KeepLastFound(false).By("", 0)
+			},
+			expected: "",
+		},
 	}
 
 	for idx, tt := range tests {

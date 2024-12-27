@@ -63,6 +63,10 @@ func CharToNum(rawStr string, opts ...NumOptFunc) (v interface{}, e error) {
 	c := re.FindAllString(rawStr, -1)
 	joinStr := strings.Join(c, "")
 
+	if strings.Contains(opt.chars, ",") {
+		joinStr = strings.ReplaceAll(joinStr, ",", ".")
+	}
+
 	if joinStr == "" {
 		return joinStr, ErrNoNumbers
 	}

@@ -1,6 +1,7 @@
 package xparse
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -48,7 +49,7 @@ Maybe you've missed one of following methods:
   + every new refiner is required
 %[4]s
 `,
-	Separator: strings.Repeat("-", 32),
+	Separator: strings.Repeat("-", 32), //nolint:mnd
 }
 
 // PromptConfig controls prompt behavior
@@ -67,6 +68,8 @@ func NewPromptConfig(hints ...string) *PromptConfig {
 	}
 }
 
+var ErrPromptOnly = errors.New("prompt error")
+
 // prompts handles missing refiner notifications
 func prompts(iface interface{}, snakeMtdName, mtdName string, cfg *PromptConfig) error {
 	if cfg == nil {
@@ -81,7 +84,14 @@ func prompts(iface interface{}, snakeMtdName, mtdName string, cfg *PromptConfig)
 
 	switch cfg.Style {
 	case PromptError:
-		return fmt.Errorf(msg)
+		return fmt.Errorf("error happens: %w", ErrPromptOnly)
+	case PromptPrint:
+		xpretty.RedPrintf(msg)
+		xpretty.GreenPrintf(cfg.Hint.MethodTemplate, mtdName, snakeMtdName, prmType, cfg.ExtraHints)
+		xpretty.YellowPrintf(cfg.Hint.WarningMessage, mtdName, snakeMtdName, prmType, cfg.Hint.Separator)
+		os.Exit(0)
+
+		return nil
 	default:
 		xpretty.RedPrintf(msg)
 		xpretty.GreenPrintf(cfg.Hint.MethodTemplate, mtdName, snakeMtdName, prmType, cfg.ExtraHints)

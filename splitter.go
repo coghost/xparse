@@ -142,14 +142,6 @@ type SplitRule struct {
 	Index     int    // The index to select after split (negative index counts from end)
 }
 
-// Helper function for absolute value
-func abs(x int) int {
-	if x < 0 {
-		return -x
-	}
-	return x
-}
-
 // Helper function to add a single split rule
 func NewSplitRule(delimiter string, index int) SplitRule {
 	return SplitRule{

@@ -345,29 +345,30 @@ func StringToBinary(value string) int {
 	if trueValues[normalized] {
 		return 1
 	}
+
 	return 0
 }
 
 // SafeGetFromMap safely retrieves a typed value from an interface{} that should be a map
 // Returns zero value of type T if:
-// - raw is not a map[string]interface{}
-// - key doesn't exist
-// - value cannot be type asserted to T
+//   - raw is not a map[string]interface{}
+//   - key doesn't exist
+//   - value cannot be type asserted to T
 func SafeGetFromMap[T any](raw interface{}, key string) T {
 	var zero T
 
-	m, ok := raw.(map[string]interface{})
-	if !ok || key == "" {
+	m, success := raw.(map[string]interface{})
+	if !success || key == "" {
 		return zero
 	}
 
-	val, ok := m[key]
-	if !ok {
+	val, success := m[key]
+	if !success {
 		return zero
 	}
 
-	typedVal, ok := val.(T)
-	if !ok {
+	typedVal, success := val.(T)
+	if !success {
 		return zero
 	}
 

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"os"
 	"reflect"
 	"regexp"
 	"strings"
@@ -540,7 +541,10 @@ func (p *Parser) getRefinerFn(snakeCaseName string) (func(raw ...interface{}) in
 				return fn, b
 			}
 
-			_ = prompts(p, mtdName, MtdName, nil)
+			typeName := getTypeNameFromInterface(p)
+			_ = handleRefinerPrompt(typeName, MtdName, nil, true)
+
+			os.Exit(0)
 		}
 	}
 

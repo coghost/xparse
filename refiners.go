@@ -1,6 +1,7 @@
 package xparse
 
 import (
+	"os"
 	"strings"
 
 	"github.com/iancoleman/strcase"
@@ -59,16 +60,26 @@ func bindRefiners(parser interface{}, attrs []string, opts ...RefOptFunc) {
 
 	refiners, _ := GetField(parser, "Refiners").Interface().(map[string]func(raw ...interface{}) interface{})
 
+	missing := []string{}
+
 	//nolint:revive,stylecheck
 	for _, mtd_name := range attrs {
 		mtdName := GetCamelRefinerName(mtd_name)
 		method := GetMethod(parser, mtdName)
 
 		if funk.IsEmpty(method) {
-			_ = prompts(parser, mtd_name, mtdName, opt.promptCfg)
+			// missing[mtd_name] = mtdName
+			missing = append(missing, mtdName)
+			continue
 		}
 
 		refiners[mtdName], _ = method.Interface().(func(raw ...interface{}) interface{})
+	}
+
+	promptMissingRefiners(parser, missing, opt)
+
+	if len(missing) > 0 {
+		os.Exit(0)
 	}
 }
 

@@ -14,6 +14,14 @@ func cfgLocator(cfg map[string]interface{}) (interface{}, bool) {
 	return getConfig(cfg, Locator, LocatorAbbr)
 }
 
+// mustCfgRaw retrieves the raw configuration value from the config map.
+// It returns the value associated with the Raw key, ignoring any errors.
+// If the key doesn't exist, it returns nil.
+func mustCfgRaw(cfg map[string]interface{}) interface{} {
+	key, _ := getConfig(cfg, Raw)
+	return key
+}
+
 // mustCfgIndex must get _index's config
 func mustCfgIndex(cfg map[string]interface{}) interface{} {
 	return must(cfgIndex, cfg)

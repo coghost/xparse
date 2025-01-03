@@ -3,7 +3,6 @@ package xparse
 import (
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/coghost/xpretty"
@@ -26,30 +25,41 @@ type RefinerHint struct {
 	Separator      string
 }
 
-// DefaultHint provides default templates for missing refiners
+// DefaultSeparatorWidth defines the default width for separators
+const DefaultSeparatorWidth = 32
+
+// DefaultHint provides templates for refiner implementation and error messages
 var DefaultHint = RefinerHint{
 	MethodTemplate: `
-func (p *%[3]s) %[1]s(raw ...interface{}) interface{} {
-    // TODO: raw[0] is the interface of string value parsed
-    // TODO: raw[1] is map/*config.Config
-    // TODO: raw[2] is *goquery.Selection/gjson.Result%[4]s
-    txt := p.SplitAtIndex(raw[0], "", -1)
-    return txt
+func (p *%[2]s) %[1]s(raw ...interface{}) interface{} {
+    // TODO: Implement refiner logic
+    //
+    // Parameters:
+    // raw[0] interface{}        - Input string to be parsed (type: string)
+    // raw[1] interface{}        - Configuration data (type: map/*config.Config)
+    // raw[2] interface{}        - Parser context (type: *goquery.Selection/gjson.Result)
+    // %[3]s
+    // Default implementation (replace with actual logic)
+    return p.SplitAtIndex(raw[0], "", -1)
 }
 `,
 	WarningMessage: `
-%[4]s
-WARN: WHY GOT THIS PROMPT?
-Maybe you've missed one of following methods:
+%[2]s
+HINT: Missing Refiner Method
 
-- RECOMMENDED: you can call xparse.UpdateRefiners(p) before DoParse
-  + this only need once
-- or you can manually assign it to p.Refiners by:
-  + p.Refiners["%[1]s"] = p.%[1]s
-  + every new refiner is required
-%[4]s
+The method template above needs to be implemented as it's currently not registered.
+REQUIRED: Implement the missing method
+
+Note: If you've already implemented the method but still see this hint,
+verify the registration:
+1. [RECOMMENDED] Use xparse.UpdateRefiners(p)
+   (Only needs to be called once before DoParse)
+
+2. Or manually register:
+   p.Refiners["%[1]s"] = p.%[1]s
+%[2]s
 `,
-	Separator: strings.Repeat("-", 32), //nolint:mnd
+	Separator: strings.Repeat("-", DefaultSeparatorWidth),
 }
 
 // PromptConfig controls prompt behavior
@@ -70,34 +80,63 @@ func NewPromptConfig(hints ...string) *PromptConfig {
 
 var ErrPromptOnly = errors.New("prompt error")
 
-// prompts handles missing refiner notifications
-func prompts(iface interface{}, snakeMtdName, mtdName string, cfg *PromptConfig) error {
+// getTypeNameFromInterface extracts the type name from an interface
+func getTypeNameFromInterface(iface interface{}) string {
+	typeName := fmt.Sprintf("%T", iface)
+	parts := strings.Split(typeName, ".")
+
+	return parts[len(parts)-1]
+}
+
+// buildRefinerHintMessage formats the complete hint message
+func buildRefinerHintMessage(typeName, mtdName string, cfg *PromptConfig, withWarningMsg bool) []string {
 	if cfg == nil {
 		cfg = NewPromptConfig()
 	}
 
-	prmType := fmt.Sprintf("%T", iface)
-	arr := strings.Split(prmType, ".")
-	prmType = arr[len(arr)-1]
+	messages := []string{
+		fmt.Sprintf(cfg.Hint.MethodTemplate, mtdName, typeName, cfg.ExtraHints),
+	}
 
-	msg := fmt.Sprintf("Missing Refiner: (%s or %s)\n", snakeMtdName, mtdName)
+	if withWarningMsg {
+		messages = append(messages,
+			fmt.Sprintf(cfg.Hint.WarningMessage, mtdName, cfg.Hint.Separator))
+	}
 
-	switch cfg.Style {
-	case PromptError:
+	return messages
+}
+
+// handleRefinerPrompt handles missing refiner notifications
+func handleRefinerPrompt(typeName string, method string, cfg *PromptConfig, withWarningMsg bool) error {
+	if cfg == nil {
+		cfg = NewPromptConfig()
+	}
+
+	if cfg.Style == PromptError {
 		return fmt.Errorf("error happens: %w", ErrPromptOnly)
-	case PromptPrint:
-		xpretty.RedPrintf(msg)
-		xpretty.GreenPrintf(cfg.Hint.MethodTemplate, mtdName, snakeMtdName, prmType, cfg.ExtraHints)
-		xpretty.YellowPrintf(cfg.Hint.WarningMessage, mtdName, snakeMtdName, prmType, cfg.Hint.Separator)
-		os.Exit(0)
+	}
 
-		return nil
-	default:
-		xpretty.RedPrintf(msg)
-		xpretty.GreenPrintf(cfg.Hint.MethodTemplate, mtdName, snakeMtdName, prmType, cfg.ExtraHints)
-		xpretty.YellowPrintf(cfg.Hint.WarningMessage, mtdName, snakeMtdName, prmType, cfg.Hint.Separator)
-		os.Exit(0)
+	messages := buildRefinerHintMessage(typeName, method, cfg, withWarningMsg)
+	xpretty.GreenPrintf(messages[0])
 
-		return nil
+	if withWarningMsg {
+		xpretty.YellowPrintf(messages[1])
+	}
+
+	return nil
+}
+
+func promptMissingRefiners(parser interface{}, missingMethods []string, opt RefOpts) {
+	found := 0
+	typeName := getTypeNameFromInterface(parser)
+
+	if len(missingMethods) > 0 {
+		base := "Missing following Refiners"
+		xpretty.CyanPrintf("%[1]s\n%[2]s\n%[1]s\n", strings.Repeat("-", len(base)), base)
+	}
+
+	for _, mtdName := range missingMethods {
+		found++
+		_ = handleRefinerPrompt(typeName, mtdName, opt.promptCfg, found == len(missingMethods))
 	}
 }

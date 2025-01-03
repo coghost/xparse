@@ -336,6 +336,12 @@ func (p *JSONParser) getNodesAttrs(
 	selection gjson.Result,
 	data map[string]interface{},
 ) {
+	// first of all, check if _raw is set or not.
+	if val := mustCfgRaw(cfg); val != nil && val != "" {
+		data[key] = p.convertToType(val, cfg)
+		return
+	}
+
 	elems, complexSel := p.getAllElems(key, cfg, selection)
 
 	switch dom := elems.(type) {
@@ -351,9 +357,24 @@ func (p *JSONParser) getNodesAttrs(
 				subData = append(subData, d)
 			}
 
-			data[key] = subData
+			data[key] = p.postJoin(cfg, subData)
 		} else {
-			data[key] = p.getSelectionSliceAttr(key, cfg, dom)
+			cpxIface := p.getSelectionSliceAttr(key, cfg, dom)
+
+			switch ifc := cpxIface.(type) {
+			case []string:
+				var sd []interface{}
+				for _, k := range ifc {
+					sd = append(sd, k)
+				}
+
+				data[key] = p.postJoin(cfg, sd)
+			case []interface{}:
+				d := p.postJoin(cfg, ifc)
+				data[key] = d
+			default:
+				data[key] = ifc
+			}
 		}
 	case map[string]gjson.Result:
 		if !complexSel {
@@ -371,4 +392,26 @@ func (p *JSONParser) getNodesAttrs(
 	default:
 		panic(xpretty.Redf("unknown type of dom %s:%v %v", key, cfg, dom))
 	}
+}
+
+func (p *JSONParser) postJoin(cfg map[string]interface{}, data []interface{}) interface{} {
+	postJoin, b := cfg[PostJoin]
+	if !b {
+		return data
+	}
+
+	joiner := p.getJoinerOrDefault(cfg, "")
+
+	if v, ok := postJoin.(string); ok {
+		joiner = v
+	}
+
+	var arr []string
+
+	for _, v := range data {
+		v1, _ := v.(string)
+		arr = append(arr, v1)
+	}
+
+	return strings.Join(arr, joiner)
 }

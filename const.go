@@ -35,6 +35,12 @@ const (
 	//     key3: div.003
 	Locator = "_locator"
 
+	// Raw represents the "_raw" configuration key.
+	// When this key exists in a configuration map:
+	//  - The value will be returned as-is without processing
+	//  - Any "_locator" settings will be ignored
+	Raw = "_raw"
+
 	// Element navigation keys
 	// ExtractPrevElem is used when no proper locator exists
 	// in most cases, we can use locator to get the elem we want,

@@ -409,6 +409,12 @@ func (p *HTMLParser) getNodesAttrs(
 	selection *goquery.Selection,
 	data map[string]interface{},
 ) {
+	// first of all, check if _raw is set or not.
+	if val := mustCfgRaw(cfg); val != nil && val != "" {
+		data[key] = p.convertToType(val, cfg)
+		return
+	}
+
 	elems, complexSel := p.getAllElems(key, cfg, selection)
 
 	switch dom := elems.(type) {
@@ -449,7 +455,14 @@ func (p *HTMLParser) getNodesAttrs(
 		}
 	case map[string]*goquery.Selection:
 		if !complexSel {
-			panic("not supported")
+			subData := make(map[string]interface{})
+
+			for k, dm := range dom {
+				d := p.getSelectionAttr(key, cfg, dm)
+				subData[k] = d
+			}
+
+			data[key] = subData
 		}
 
 		data[key] = p.getSelectionMapAttr(key, cfg, dom)

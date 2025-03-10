@@ -43,10 +43,10 @@ type Parser struct {
 
 	config *config.Config
 
-	Root interface{}
+	Root any
 
 	// this is a map's stub, check const.PrefixLocatorStub for more info
-	FocusedStub interface{}
+	FocusedStub any
 
 	RawData string
 
@@ -61,10 +61,10 @@ type Parser struct {
 	// PID parser uniqid
 	PID string
 
-	presetData map[string]interface{}
+	presetData map[string]any
 
 	// map to config
-	ParsedData map[string]interface{}
+	ParsedData map[string]any
 
 	// testKeys, only keys in testKeys will be parsed, and .rank is parsed by default
 	testKeys []string
@@ -95,7 +95,7 @@ type Parser struct {
 	//    + first params is string, which is the raw str get from html (usually by get_text/get_attr)
 	//    + second params is the *config.Config (which is rarely used)
 	//    + third params is *goquery.Selection
-	Refiners map[string]func(raw ...interface{}) interface{}
+	Refiners map[string]func(raw ...any) any
 
 	AttrToBeRefined []string
 }
@@ -105,8 +105,8 @@ func NewParser(raw []byte, ymlMap ...[]byte) *Parser {
 		sourceData: raw,
 		sourceYaml: ymlMap,
 		config:     &config.Config{},
-		ParsedData: make(map[string]interface{}),
-		Refiners:   make(map[string]func(args ...interface{}) interface{}),
+		ParsedData: make(map[string]any),
+		Refiners:   make(map[string]func(args ...any) any),
 
 		rankAsIndex: false,
 	}
@@ -116,7 +116,7 @@ func (p *Parser) ToggleDevMode(b bool) {
 	p.devMode = b
 }
 
-func (p *Parser) Debug(key interface{}, raw ...interface{}) {
+func (p *Parser) Debug(key any, raw ...any) {
 	if p.devMode {
 		xpretty.GreenPrintf(fmt.Sprintf("[%d] %v: (%v)", p.rank, key, raw[0]))
 	}
@@ -132,7 +132,7 @@ func (p *Parser) VerifyKeys() (arr []string) {
 	return p.verifyKeys
 }
 
-func (p *Parser) BindPresetData(dat map[string]interface{}) {
+func (p *Parser) BindPresetData(dat map[string]any) {
 	if dat == nil {
 		return
 	}
@@ -140,15 +140,15 @@ func (p *Parser) BindPresetData(dat map[string]interface{}) {
 	p.presetData = dat
 }
 
-func (p *Parser) GetPresetData() map[string]interface{} {
+func (p *Parser) GetPresetData() map[string]any {
 	return p.presetData
 }
 
-func (p *Parser) ExtraInfo() map[string]interface{} {
+func (p *Parser) ExtraInfo() map[string]any {
 	return nil
 }
 
-func (p *Parser) AppendPresetData(data map[string]interface{}) {
+func (p *Parser) AppendPresetData(data map[string]any) {
 	pd := p.GetPresetData()
 	for k, v := range pd {
 		_, b := data[k]
@@ -193,15 +193,15 @@ func (p *Parser) MustMandatoryFields(got, wanted []string) {
 // get raw info's value in config file
 //   - if args is empty, will return __raw's value
 //   - else return the first value in args
-func (p *Parser) RawInfo(args ...string) map[string]interface{} {
+func (p *Parser) RawInfo(args ...string) map[string]any {
 	key := FirstOrDefaultArgs("__raw", args...)
 	raw := p.config.Data()[key]
-	rawInfo, _ := raw.(map[string]interface{})
+	rawInfo, _ := raw.(map[string]any)
 
 	return rawInfo
 }
 
-func (p *Parser) GetParsedData(args ...string) interface{} {
+func (p *Parser) GetParsedData(args ...string) any {
 	if len(args) == 0 {
 		return p.ParsedData
 	}
@@ -209,16 +209,16 @@ func (p *Parser) GetParsedData(args ...string) interface{} {
 	return p.ParsedData[args[0]]
 }
 
-func (p *Parser) PrettifyData(args ...interface{}) error {
+func (p *Parser) PrettifyData(args ...any) error {
 	return xpretty.PrettyMap(p.ParsedData)
 }
 
-func (p *Parser) PrettifyJSONData(args ...interface{}) error {
+func (p *Parser) PrettifyJSONData(args ...any) error {
 	return xpretty.PrettyJSON(p.MustDataAsJSON(args...))
 }
 
 // DataAsJson returns a string of args[0] or p.ParsedData and error
-func (p *Parser) DataAsJSON(args ...interface{}) (string, error) {
+func (p *Parser) DataAsJSON(args ...any) (string, error) {
 	if len(args) != 0 {
 		key, _ := args[0].(string)
 
@@ -233,14 +233,14 @@ func (p *Parser) DataAsJSON(args ...interface{}) (string, error) {
 	return Stringify(p.ParsedData)
 }
 
-func (p *Parser) MustDataAsJSON(args ...interface{}) string {
+func (p *Parser) MustDataAsJSON(args ...any) string {
 	raw, err := p.DataAsJSON(args...)
 	PanicIfErr(err)
 
 	return raw
 }
 
-func (p *Parser) DataAsStruct(structObj any, args ...interface{}) error {
+func (p *Parser) DataAsStruct(structObj any, args ...any) error {
 	raw, err := p.DataAsJSON(args...)
 	if err != nil {
 		return err
@@ -249,7 +249,7 @@ func (p *Parser) DataAsStruct(structObj any, args ...interface{}) error {
 	return json.Unmarshal([]byte(raw), structObj)
 }
 
-func (p *Parser) DataAsYaml(args ...interface{}) (string, error) {
+func (p *Parser) DataAsYaml(args ...any) (string, error) {
 	raw, err := p.DataAsJSON(args...)
 	if err != nil {
 		return raw, err
@@ -260,7 +260,7 @@ func (p *Parser) DataAsYaml(args ...interface{}) (string, error) {
 	return string(v), e
 }
 
-func (p *Parser) MustDataAsYaml(args ...interface{}) string {
+func (p *Parser) MustDataAsYaml(args ...any) string {
 	raw, err := p.DataAsYaml(args...)
 	PanicIfErr(err)
 
@@ -270,7 +270,7 @@ func (p *Parser) MustDataAsYaml(args ...interface{}) string {
 func (p *Parser) Scan() {
 	for key, cfg := range p.config.Data() {
 		switch cfgType := cfg.(type) {
-		case map[string]interface{}:
+		case map[string]any:
 			p.parseAttrs("", key, cfgType)
 		default:
 			xpretty.RedPrintf(_nonMapHint, key, cfg)
@@ -279,9 +279,9 @@ func (p *Parser) Scan() {
 	}
 }
 
-func (p *Parser) parseAttrs(_ string, key string, config interface{}) {
+func (p *Parser) parseAttrs(_ string, key string, config any) {
 	switch cfg := config.(type) {
-	case map[string]interface{}:
+	case map[string]any:
 		if p.isLeaf(cfg) {
 			refine, b := cfgAttrRefine(cfg)
 			if !b {
@@ -392,7 +392,7 @@ func (p *Parser) isRequiredKey(key string) (b bool) {
 	return true
 }
 
-func (p *Parser) isLeaf(cfg map[string]interface{}) bool {
+func (p *Parser) isLeaf(cfg map[string]any) bool {
 	for k := range cfg {
 		// if key starts with _, means has child node
 		if !strings.HasPrefix(k, "_") {
@@ -407,7 +407,7 @@ func (p *Parser) ToggleRankType(b bool) {
 	p.rankAsIndex = b
 }
 
-func (p *Parser) setRank(cfg map[string]interface{}) {
+func (p *Parser) setRank(cfg map[string]any) {
 	idxGot := mustCfgIndex(cfg)
 
 	if idxGot == nil {
@@ -421,7 +421,7 @@ func (p *Parser) setRank(cfg map[string]interface{}) {
 	switch idx := idxGot.(type) {
 	case int:
 		p.rank = idx
-	case []interface{}:
+	case []any:
 		if p.rankAsIndex {
 			p.rank = cast.ToInt(idx[p.rankOffset])
 		} else {
@@ -439,7 +439,7 @@ func (p *Parser) setRank(cfg map[string]interface{}) {
 	}
 }
 
-func (p *Parser) convertToType(raw interface{}, cfg map[string]interface{}) interface{} {
+func (p *Parser) convertToType(raw any, cfg map[string]any) any {
 	t, o := cfgType(cfg)
 	if o {
 		switch t {
@@ -459,7 +459,7 @@ func (p *Parser) convertToType(raw interface{}, cfg map[string]interface{}) inte
 	return raw
 }
 
-func (p *Parser) formatDate(raw interface{}, bySearch bool) interface{} {
+func (p *Parser) formatDate(raw any, bySearch bool) any {
 	rawStr, _ := raw.(string)
 	if v := xdtm.GetDateTimeStr(rawStr, xdtm.WithBySearch(bySearch)); v != "" {
 		return v
@@ -468,7 +468,7 @@ func (p *Parser) formatDate(raw interface{}, bySearch bool) interface{} {
 	return raw
 }
 
-func (p *Parser) TrimSpace(txt string, cfg map[string]interface{}) string {
+func (p *Parser) TrimSpace(txt string, cfg map[string]any) string {
 	st := cfg[Strip]
 	if st == false {
 		return txt
@@ -477,7 +477,7 @@ func (p *Parser) TrimSpace(txt string, cfg map[string]interface{}) string {
 	return strings.TrimSpace(txt)
 }
 
-func (p *Parser) stripChars(key string, raw interface{}, cfg map[string]interface{}) interface{} {
+func (p *Parser) stripChars(key string, raw any, cfg map[string]any) any {
 	switch v := raw.(type) {
 	case string:
 		return p.stripStrings(key, v, cfg)
@@ -486,7 +486,7 @@ func (p *Parser) stripChars(key string, raw interface{}, cfg map[string]interfac
 	}
 }
 
-func (p *Parser) stripStrings(_ string, raw interface{}, cfg map[string]interface{}) interface{} {
+func (p *Parser) stripStrings(_ string, raw any, cfg map[string]any) any {
 	rawStr, _ := raw.(string)
 
 	st := cfg[Strip]
@@ -497,7 +497,7 @@ func (p *Parser) stripStrings(_ string, raw interface{}, cfg map[string]interfac
 	switch stripType := st.(type) {
 	case string:
 		return strings.ReplaceAll(rawStr, stripType, "")
-	case []interface{}:
+	case []any:
 		val := rawStr
 
 		for _, sub := range stripType {
@@ -529,7 +529,7 @@ func (p *Parser) isMethodExisted(snakeCaseName string) (rv reflect.Value, b bool
 	return method, true
 }
 
-func (p *Parser) getRefinerFn(snakeCaseName string) (func(raw ...interface{}) interface{}, bool) {
+func (p *Parser) getRefinerFn(snakeCaseName string) (func(raw ...any) any, bool) {
 	mtdName := GetLowerCamelRefinerName(snakeCaseName)
 	MtdName := GetCamelRefinerName(snakeCaseName)
 
@@ -551,7 +551,7 @@ func (p *Parser) getRefinerFn(snakeCaseName string) (func(raw ...interface{}) in
 	return injectFn, found
 }
 
-func (p *Parser) loadPreDefined(mtdName string) (func(raw ...interface{}) interface{}, bool) {
+func (p *Parser) loadPreDefined(mtdName string) (func(raw ...any) any, bool) {
 	switch mtdName {
 	case "BindRank":
 		return p.BindRank, true
@@ -570,7 +570,7 @@ func (p *Parser) loadPreDefined(mtdName string) (func(raw ...interface{}) interf
 	}
 }
 
-func (p *Parser) refineByRe(raw interface{}, cfg map[string]interface{}) interface{} {
+func (p *Parser) refineByRe(raw any, cfg map[string]any) any {
 	rgx, ok := cfg[AttrRegex]
 	if !ok {
 		return raw
@@ -586,7 +586,7 @@ func (p *Parser) refineByRe(raw interface{}, cfg map[string]interface{}) interfa
 	return regex.FindString(rawStr)
 }
 
-func (p *Parser) refineByPython(raw interface{}, cfg map[string]interface{}) interface{} {
+func (p *Parser) refineByPython(raw any, cfg map[string]any) any {
 	code, ok := cfg[AttrPython]
 	if !ok {
 		return raw
@@ -603,7 +603,7 @@ func (p *Parser) refineByPython(raw interface{}, cfg map[string]interface{}) int
 	return resp.RefinedString
 }
 
-func (p *Parser) refineByJS(raw interface{}, cfg map[string]interface{}) interface{} {
+func (p *Parser) refineByJS(raw any, cfg map[string]any) any {
 	code, ok := cfg[AttrJS]
 	if !ok {
 		return raw
@@ -620,7 +620,7 @@ func (p *Parser) refineByJS(raw interface{}, cfg map[string]interface{}) interfa
 	return resp.RefinedString
 }
 
-func (p *Parser) advancedPostRefineAttr(raw interface{}, cfg map[string]interface{}) interface{} {
+func (p *Parser) advancedPostRefineAttr(raw any, cfg map[string]any) any {
 	raw = p.refineByRe(raw, cfg)
 	raw = p.refineByPython(raw, cfg)
 	raw = p.refineByJS(raw, cfg)
@@ -628,7 +628,7 @@ func (p *Parser) advancedPostRefineAttr(raw interface{}, cfg map[string]interfac
 	return raw
 }
 
-func (p *Parser) refineAttr(key string, raw interface{}, cfg map[string]interface{}, selection interface{}) interface{} {
+func (p *Parser) refineAttr(key string, raw any, cfg map[string]any, selection any) any {
 	attr := cfg[Attr]
 
 	refine := mustCfgAttrRefine(cfg)
@@ -649,7 +649,7 @@ func (p *Parser) refineAttr(key string, raw interface{}, cfg map[string]interfac
 		case string:
 			return injectFn(val, cfg, selection)
 		case []string:
-			var resp []interface{}
+			var resp []any
 			for _, v := range val {
 				resp = append(resp, injectFn(v, cfg, selection))
 			}
@@ -670,7 +670,7 @@ func (p *Parser) refineAttr(key string, raw interface{}, cfg map[string]interfac
 
 			return res[0].Interface()
 		case []string:
-			var resp []interface{}
+			var resp []any
 
 			for _, v := range val {
 				param := []reflect.Value{reflect.ValueOf(v), reflect.ValueOf(cfg), reflect.ValueOf(selection)}
@@ -692,7 +692,7 @@ func (p *Parser) refineAttr(key string, raw interface{}, cfg map[string]interfac
 //	@param key: the key of the stub
 //	@param refiner: is the _attr_refine defined in yaml
 //	@param attr: is the _attr key to be refined
-func (p *Parser) convertAttrRefineToSnakeCaseName(key string, refiner, attr interface{}) string {
+func (p *Parser) convertAttrRefineToSnakeCaseName(key string, refiner, attr any) string {
 	var snakeCaseName string
 
 	switch mtd := refiner.(type) {
@@ -721,7 +721,7 @@ func (p *Parser) convertAttrRefineToSnakeCaseName(key string, refiner, attr inte
 	return snakeCaseName
 }
 
-func (p *Parser) getJoinerOrDefault(cfg map[string]interface{}, dft string) string {
+func (p *Parser) getJoinerOrDefault(cfg map[string]any, dft string) string {
 	joiner := dft
 	if j := cfg[AttrJoiner]; j != nil {
 		joiner, _ = j.(string)

@@ -26,7 +26,7 @@ var ErrNoNumbers = errors.New("no number found")
 
 type NumOpts struct {
 	chars string
-	dft   interface{}
+	dft   any
 }
 
 type NumOptFunc func(o *NumOpts)
@@ -39,7 +39,7 @@ func Chars(s string) NumOptFunc {
 	}
 }
 
-func Dft(i interface{}) NumOptFunc {
+func Dft(i any) NumOptFunc {
 	return func(o *NumOpts) {
 		o.dft = i
 	}
@@ -54,7 +54,7 @@ func bindOpts(opt *NumOpts, opts ...NumOptFunc) {
 // CharToNum extract `number+Chars` from source str
 //
 //	the extracted value could be float value, so convert to float first, then return int by default
-func CharToNum(rawStr string, opts ...NumOptFunc) (v interface{}, e error) {
+func CharToNum(rawStr string, opts ...NumOptFunc) (v any, e error) {
 	opt := NumOpts{chars: ".", dft: 1}
 	bindOpts(&opt, opts...)
 
@@ -96,7 +96,7 @@ func CharToNum(rawStr string, opts ...NumOptFunc) (v interface{}, e error) {
 	}
 }
 
-func MustCharToNum(s string, opts ...NumOptFunc) (v interface{}) {
+func MustCharToNum(s string, opts ...NumOptFunc) (v any) {
 	v, e := CharToNum(s, opts...)
 	if e != nil {
 		PanicIfErr(e)

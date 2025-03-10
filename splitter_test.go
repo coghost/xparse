@@ -12,7 +12,7 @@ func TestStringSplitter(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		input    interface{}
+		input    any
 		rules    func(*Splitter) *Splitter
 		expected string
 	}{
@@ -246,7 +246,7 @@ func TestStringSplitter(t *testing.T) {
 func TestSplitAtIndex(t *testing.T) {
 	assert := assert.New(t)
 	tests := []struct {
-		input    interface{}
+		input    any
 		sep      string
 		index    int
 		expected string

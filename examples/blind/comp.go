@@ -51,7 +51,7 @@ func loadYamlConfig(ymlFile string) []byte {
 	return v
 }
 
-func (p *BasicParser) RefineReviews(raw ...interface{}) interface{} {
+func (p *BasicParser) RefineReviews(raw ...any) any {
 	txt := p.SplitAtIndex(raw[0], "\n", 0)
 	txt = p.SplitAtIndex(txt, "(", 1)
 	txt = strings.ReplaceAll(txt, ",", "")

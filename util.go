@@ -124,7 +124,7 @@ func Yaml2Config(raw ...[]byte) (cf *config.Config) {
 	return cf
 }
 
-func EnrichURL(domain string, raw interface{}) interface{} {
+func EnrichURL(domain string, raw any) any {
 	uri, _ := raw.(string)
 	parsedURL, err := url.Parse(uri)
 	PanicIfErr(err)
@@ -212,7 +212,7 @@ func GetStrBySplit(raw string, sep string, offset int) (string, bool) {
 	return raw, false
 }
 
-func GetType(obj interface{}) string {
+func GetType(obj any) string {
 	if t := reflect.TypeOf(obj); t.Kind() == reflect.Ptr {
 		return "*" + t.Elem().Name()
 	} else {
@@ -220,18 +220,18 @@ func GetType(obj interface{}) string {
 	}
 }
 
-func GetMapKeys(all *[]string, data interface{}, args ...string) {
+func GetMapKeys(all *[]string, data any, args ...string) {
 	prefix := FirstOrDefaultArgs("", args...)
 
-	var dat map[string]interface{}
+	var dat map[string]any
 	switch datType := data.(type) {
-	case []map[string]interface{}:
+	case []map[string]any:
 		dat = datType[0]
-	case map[string]interface{}:
+	case map[string]any:
 		dat = datType
-	case []interface{}:
+	case []any:
 		switch d1 := datType[0].(type) {
-		case map[string]interface{}:
+		case map[string]any:
 			dat = d1
 		default:
 			*all = append(*all, prefix)
@@ -259,10 +259,10 @@ func GetMapKeys(all *[]string, data interface{}, args ...string) {
 		case string:
 			// json.strings
 			*all = append(*all, key)
-		case map[string]interface{}:
+		case map[string]any:
 			// json.Object
 			GetMapKeys(all, vType, key)
-		case []interface{}:
+		case []any:
 			// json.array
 			// all = append(all, key)
 			GetMapKeys(all, vType, key)
@@ -273,7 +273,7 @@ func GetMapKeys(all *[]string, data interface{}, args ...string) {
 	}
 }
 
-func Invoke(iface interface{}, name string, args ...interface{}) []reflect.Value {
+func Invoke(iface any, name string, args ...any) []reflect.Value {
 	inputs := make([]reflect.Value, len(args))
 	for i := range args {
 		inputs[i] = reflect.ValueOf(args[i])
@@ -284,16 +284,16 @@ func Invoke(iface interface{}, name string, args ...interface{}) []reflect.Value
 	return v.Call(inputs)
 }
 
-func GetMethod(iface interface{}, key string) reflect.Value {
+func GetMethod(iface any, key string) reflect.Value {
 	return reflect.ValueOf(iface).MethodByName(key)
 }
 
-func GetField(iface interface{}, key string) reflect.Value {
+func GetField(iface any, key string) reflect.Value {
 	return reflect.ValueOf(iface).Elem().FieldByName(key)
 }
 
 // Stringify returns a string representation
-func Stringify(data interface{}) (string, error) {
+func Stringify(data any) (string, error) {
 	b, err := json.Marshal(data)
 	if err != nil {
 		return "", err
@@ -303,7 +303,7 @@ func Stringify(data interface{}) (string, error) {
 }
 
 // Structify returns the original representation
-func Structify(data string, value interface{}) error {
+func Structify(data string, value any) error {
 	return json.Unmarshal([]byte(data), value)
 }
 
@@ -349,15 +349,15 @@ func StringToBinary(value string) int {
 	return 0
 }
 
-// SafeGetFromMap safely retrieves a typed value from an interface{} that should be a map
+// SafeGetFromMap safely retrieves a typed value from an any that should be a map
 // Returns zero value of type T if:
-//   - raw is not a map[string]interface{}
+//   - raw is not a map[string]any
 //   - key doesn't exist
 //   - value cannot be type asserted to T
-func SafeGetFromMap[T any](raw interface{}, key string) T {
+func SafeGetFromMap[T any](raw any, key string) T {
 	var zero T
 
-	m, success := raw.(map[string]interface{})
+	m, success := raw.(map[string]any)
 	if !success || key == "" {
 		return zero
 	}

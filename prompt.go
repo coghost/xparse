@@ -31,13 +31,13 @@ const DefaultSeparatorWidth = 32
 // DefaultHint provides templates for refiner implementation and error messages
 var DefaultHint = RefinerHint{
 	MethodTemplate: `
-func (p *%[2]s) %[1]s(raw ...interface{}) interface{} {
+func (p *%[2]s) %[1]s(raw ...any) any {
     // TODO: Implement refiner logic
     //
     // Parameters:
-    // raw[0] interface{}        - Input string to be parsed (type: string)
-    // raw[1] interface{}        - Configuration data (type: map/*config.Config)
-    // raw[2] interface{}        - Parser context (type: *goquery.Selection/gjson.Result)
+    // raw[0] any        - Input string to be parsed (type: string)
+    // raw[1] any        - Configuration data (type: map/*config.Config)
+    // raw[2] any        - Parser context (type: *goquery.Selection/gjson.Result)
     // %[3]s
     // Default implementation (replace with actual logic)
     return p.SplitAtIndex(raw[0], "", -1)
@@ -81,7 +81,7 @@ func NewPromptConfig(hints ...string) *PromptConfig {
 var ErrPromptOnly = errors.New("prompt error")
 
 // getTypeNameFromInterface extracts the type name from an interface
-func getTypeNameFromInterface(iface interface{}) string {
+func getTypeNameFromInterface(iface any) string {
 	typeName := fmt.Sprintf("%T", iface)
 	parts := strings.Split(typeName, ".")
 
@@ -126,7 +126,7 @@ func handleRefinerPrompt(typeName string, method string, cfg *PromptConfig, with
 	return nil
 }
 
-func promptMissingRefiners(parser interface{}, missingMethods []string, opt RefOpts) {
+func promptMissingRefiners(parser any, missingMethods []string, opt RefOpts) {
 	found := 0
 	typeName := getTypeNameFromInterface(parser)
 

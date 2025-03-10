@@ -38,7 +38,7 @@ func (s *UtilSuite) TearDownSuite() {
 }
 
 func (s *UtilSuite) Test01_GetKeys() {
-	dat := make(map[string]interface{})
+	dat := make(map[string]any)
 	err := Structify(s.rawJSON, &dat)
 	s.Nil(err)
 	// keys := GetKeys(dat["friends"], "friends")
@@ -65,18 +65,18 @@ func (s *UtilSuite) Test03_load() {
 	r1 := getBytes("html_yaml/0001.yaml")
 	cf := Yaml2Config(r1, r0)
 
-	want := map[string]interface{}{
-		"__raw": map[string]interface{}{
+	want := map[string]any{
+		"__raw": map[string]any{
 			"country": "CH",
-			"language": []interface{}{
+			"language": []any{
 				"en",
 			},
 			"site":     uint64(895),
 			"site_url": "https://www.jobisjob.ch/",
-			"test_keys": []interface{}{
+			"test_keys": []any{
 				"jobs.*",
 			},
-			"verify_keys": []interface{}{
+			"verify_keys": []any{
 				"salary_range",
 				"listing_date",
 				"external_id",

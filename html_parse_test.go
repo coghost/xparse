@@ -34,7 +34,7 @@ func TestHtmlParser(t *testing.T) {
 	suite.Run(t, new(HTMLParserSuite))
 }
 
-func (p *xkcdParser) RefineAltAlt(raw ...interface{}) interface{} {
+func (p *xkcdParser) RefineAltAlt(raw ...any) any {
 	return raw[0]
 }
 
@@ -57,7 +57,7 @@ func (s *HTMLParserSuite) Test_0100PanicsWithUnsupportedType() {
 	yml := getBytes("html_yaml/0100.yaml")
 	ps := NewHTMLParser(s.rawHTML, yml)
 	s.PanicsWithValue(
-		"unknown type of (footnote:[div.ok div.fail]), only support (1:string or 2:map[string]interface{})",
+		"unknown type of (footnote:[div.ok div.fail]), only support (1:string or 2:map[string]any)",
 		func() {
 			ps.DoParse()
 		})
@@ -77,7 +77,7 @@ func (s *HTMLParserSuite) Test_0102PanicsWithIndexE2() {
 	yml := getBytes("html_yaml/0102.yaml")
 	ps := NewHTMLParser(s.rawHTML, yml)
 	s.PanicsWithValue(
-		"index should be int/int64/uint64 or []interface{}, but (comic_nav is map[string]interface {}: map[fail:href panic:enrich_url])",
+		"index should be int/int64/uint64 or []any, but (comic_nav is map[string]interface {}: map[fail:href panic:enrich_url])",
 		func() {
 			ps.DoParse()
 		})
@@ -87,7 +87,7 @@ func (s *HTMLParserSuite) Test_0103PanicsWithRefineMethod() {
 	yml := getBytes("html_yaml/0103.yaml")
 	ps := NewHTMLParser(s.rawHTML, yml)
 
-	refineCtitle := func(raw ...interface{}) interface{} {
+	refineCtitle := func(raw ...any) any {
 		return ""
 	}
 	ps.Refiners["_refine_ctitle1"] = refineCtitle
@@ -294,7 +294,7 @@ func (s *HTMLParserSuite) Test_0300InRealWorld() {
 	s.JSONEq(want, dat)
 }
 
-func refineAltAlt(raw ...interface{}) interface{} {
+func refineAltAlt(raw ...any) any {
 	return raw[0]
 }
 
@@ -305,9 +305,9 @@ func (s *HTMLParserSuite) Test_0301DevMode() {
 	p.Refiners["RefineAltAlt"] = refineAltAlt
 	p.DoParse()
 
-	want := map[string]interface{}{
-		"bottom": map[string]interface{}{
-			"comic_links": []map[string]interface{}{
+	want := map[string]any{
+		"bottom": map[string]any{
+			"comic_links": []map[string]any{
 				{
 					"href": "http://threewordphrase.com/",
 					"text": "Three Word Phrase",
@@ -366,7 +366,7 @@ func (s *HTMLParserSuite) Test_0301DevMode() {
 				},
 			},
 		},
-		"middle": map[string]interface{}{
+		"middle": map[string]any{
 			"ctitle":     "Python",
 			"transcript": "[[ Guy 1 is talking to Guy 2, who is floating in the sky ]]\nGuy 1: You're flying! How?\nGuy 2: Python!\nGuy 2: I learned it last night! Everything is so simple!\nGuy 2: Hello world is just 'print \"Hello, World!\" '\nGuy 1: I dunno... Dynamic typing? Whitespace?\nGuy 2: Come join us! Programming is fun again! It's a whole new world up here!\nGuy 1: But how are you flying?\nGuy 2: I just typed 'import antigravity'\nGuy 1: That's it?\nGuy 2: ...I also sampled everything in the medicine cabinet for comparison.\nGuy 2: But i think this is the python.\n{{ I wrote 20 short programs in Python yesterday.  It was wonderful.  Perl, I'm leaving you. }}",
 		},
@@ -386,8 +386,8 @@ func (s *HTMLParserSuite) Test_0400_index() {
 	p := NewHTMLParser(rawHTML, rawYaml)
 	p.DoParse()
 
-	want := map[string]interface{}{
-		"jobs": []map[string]interface{}{
+	want := map[string]any{
+		"jobs": []map[string]any{
 			{
 				"rank":  0,
 				"title": "Python Software Engineer",
@@ -407,8 +407,8 @@ func (s *HTMLParserSuite) Test_0500_type() {
 	p := NewHTMLParser(rawHTML, rawYaml)
 	p.DoParse()
 
-	want := map[string]interface{}{
-		"jobs": []map[string]interface{}{
+	want := map[string]any{
+		"jobs": []map[string]any{
 			{
 				"rank":       0,
 				"rating":     2.000000,
@@ -440,12 +440,12 @@ func newHTMLParser1(rawHTML, ymlMap []byte) *htmlParser1 {
 	}
 }
 
-func (p *htmlParser1) RefineRating(raw ...interface{}) interface{} {
+func (p *htmlParser1) RefineRating(raw ...any) any {
 	v := cast.ToFloat64(raw[0])
 	return v
 }
 
-func (p *htmlParser1) RefineLevel(raw ...interface{}) interface{} {
+func (p *htmlParser1) RefineLevel(raw ...any) any {
 	switch v := cast.ToFloat64(raw[0]); {
 	case v <= 0, v > 5:
 		return ""
@@ -462,7 +462,7 @@ func (p *htmlParser1) RefineLevel(raw ...interface{}) interface{} {
 	}
 }
 
-func (p *htmlParser1) GenLevel(raw ...interface{}) interface{} {
+func (p *htmlParser1) GenLevel(raw ...any) any {
 	v := p.RefineLevel(raw...)
 	return fmt.Sprintf("G-%v", v)
 }
@@ -475,8 +475,8 @@ func (s *HTMLParserSuite) Test_0601_attrRefineManually() {
 	p.Refiners["GenLevel"] = p.GenLevel
 	p.DoParse()
 
-	want := map[string]interface{}{
-		"jobs": []map[string]interface{}{
+	want := map[string]any{
+		"jobs": []map[string]any{
 			{
 				"rank":           0,
 				"rating":         2.000000,
@@ -505,8 +505,8 @@ func (s *HTMLParserSuite) Test_0602_attrRefineAuto() {
 	UpdateRefiners(p)
 	p.DoParse()
 
-	want := map[string]interface{}{
-		"jobs": []map[string]interface{}{
+	want := map[string]any{
+		"jobs": []map[string]any{
 			{
 				"rank":           0,
 				"rating":         2.000000,
@@ -539,12 +539,12 @@ func newHTMLParser2(rawHTML, ymlMap []byte) *htmlParser2 {
 	}
 }
 
-func (p *htmlParser2) RefineCompInfo(raw ...interface{}) interface{} {
+func (p *htmlParser2) RefineCompInfo(raw ...any) any {
 	v := cast.ToString(raw[0])
 	return v
 }
 
-func (p *htmlParser2) RefineCompInfoArr(raw ...interface{}) interface{} {
+func (p *htmlParser2) RefineCompInfoArr(raw ...any) any {
 	v := cast.ToString(raw[0])
 	return v
 }
@@ -554,17 +554,17 @@ func (s *HTMLParserSuite) Test_0701_complexSel() {
 	p := newHTMLParser2(rawHTML, rawYaml)
 	UpdateRefiners(p)
 	p.DoParse()
-	want := map[string]interface{}{
-		"jobs": []map[string]interface{}{
+	want := map[string]any{
+		"jobs": []map[string]any{
 			{
-				"comp_info": []interface{}{
+				"comp_info": []any{
 					"Estimated $102K - $129K a year",
 					"2.0",
 					"Zelis",
 					"Python Software Engineer",
 					"Remote",
 				},
-				"comp_info_arr": []interface{}{
+				"comp_info_arr": []any{
 					"Estimated $102K - $129K a year",
 					"2.0",
 					"Zelis",
@@ -573,7 +573,7 @@ func (s *HTMLParserSuite) Test_0701_complexSel() {
 				},
 				"comp_info_map": "{\"location\":\"Remote\",\"name\":\"Zelis\",\"rating\":\"2.0\",\"salary\":\"Estimated $102K - $129K a year\",\"title\":\"Python Software Engineer\"}",
 				"rank":          0,
-				"restub_arr": map[string]interface{}{
+				"restub_arr": map[string]any{
 					"comp_info": []string{
 						"Estimated $102K - $129K a year",
 						"2.0",
@@ -582,19 +582,19 @@ func (s *HTMLParserSuite) Test_0701_complexSel() {
 						"Remote",
 					},
 				},
-				"restub_map": map[string]interface{}{
+				"restub_map": map[string]any{
 					"comp_info": "{\"location\":\"Remote\",\"name\":\"Zelis\",\"rating\":\"2.0\",\"salary\":\"Estimated $102K - $129K a year\",\"title\":\"Python Software Engineer\"}",
 				},
 			},
 			{
-				"comp_info": []interface{}{
+				"comp_info": []any{
 					"",
 					"3.4",
 					"CrowdStrike",
 					"Data Scientist, Malware Detections Team (Remote)",
 					"+1 locationRemote",
 				},
-				"comp_info_arr": []interface{}{
+				"comp_info_arr": []any{
 					"",
 					"3.4",
 					"CrowdStrike",
@@ -603,7 +603,7 @@ func (s *HTMLParserSuite) Test_0701_complexSel() {
 				},
 				"comp_info_map": "{\"location\":\"+1 locationRemote\",\"name\":\"CrowdStrike\",\"rating\":\"3.4\",\"salary\":\"\",\"title\":\"Data Scientist, Malware Detections Team (Remote)\"}",
 				"rank":          1,
-				"restub_arr": map[string]interface{}{
+				"restub_arr": map[string]any{
 					"comp_info": []string{
 						"",
 						"3.4",
@@ -612,7 +612,7 @@ func (s *HTMLParserSuite) Test_0701_complexSel() {
 						"+1 locationRemote",
 					},
 				},
-				"restub_map": map[string]interface{}{
+				"restub_map": map[string]any{
 					"comp_info": "{\"location\":\"+1 locationRemote\",\"name\":\"CrowdStrike\",\"rating\":\"3.4\",\"salary\":\"\",\"title\":\"Data Scientist, Malware Detections Team (Remote)\"}",
 				},
 			},
@@ -727,10 +727,10 @@ func (s *HTMLParserSuite) Test_0900() {
 	p := NewHTMLParser(rawHTML, rawYaml)
 	p.DoParse()
 
-	wantData := map[string]interface{}{
-		"jobs": []map[string]interface{}{
+	wantData := map[string]any{
+		"jobs": []map[string]any{
 			{
-				"company": map[string]interface{}{
+				"company": map[string]any{
 					"name": "CrowdStrike",
 				},
 				"id":           "8cd20f584d7164c7",
@@ -750,10 +750,10 @@ func (s *HTMLParserSuite) Test_0901() {
 	p := NewHTMLParser(rawHTML, rawYaml)
 	p.DoParse()
 
-	wantData := map[string]interface{}{
-		"jobs": []map[string]interface{}{
+	wantData := map[string]any{
+		"jobs": []map[string]any{
 			{
-				"company": map[string]interface{}{
+				"company": map[string]any{
 					"name": "CrowdStrike",
 				},
 				"id":           "8cd20f584d7164c7",
@@ -774,9 +774,9 @@ func (s *HTMLParserSuite) Test_1000() {
 	p := NewHTMLParser(rawHTML, rawYaml)
 	p.DoParse()
 
-	want := map[string]interface{}{
-		"entity": map[string]interface{}{
-			"message": map[string]interface{}{
+	want := map[string]any{
+		"entity": map[string]any{
+			"message": map[string]any{
 				"content_path":      "60/raw/20240531_20240531_07a062649c160558.html",
 				"content_size":      37410.000000,
 				"content_type":      "html",
@@ -798,8 +798,8 @@ func (s *HTMLParserSuite) Test_1001() {
 	p := NewHTMLParser(rawHTML, rawYaml)
 	p.DoParse()
 
-	want := map[string]interface{}{
-		"entity": map[string]interface{}{
+	want := map[string]any{
+		"entity": map[string]any{
 			"content_path":      "60/raw/20240531_20240531_07a062649c160558.html",
 			"content_size":      "37410",
 			"content_type":      "html",

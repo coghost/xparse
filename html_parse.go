@@ -42,7 +42,7 @@ func (p *HTMLParser) DoParse() {
 
 	for key, cfg := range p.config.Data() {
 		switch cfgType := cfg.(type) {
-		case map[string]interface{}:
+		case map[string]any:
 			p.rankOffset = 0
 			selection, _ := p.Root.(*goquery.Selection)
 			p.parseDom(key, cfgType, selection, p.ParsedData, _layerForRank)
@@ -59,8 +59,8 @@ func (p *HTMLParser) DoParse() {
 // parseDom
 // only support two data type
 // 1. str
-// 2. map[string]interface{}
-func (p *HTMLParser) parseDom(key string, cfg interface{}, selection *goquery.Selection, data map[string]interface{}, layer int) {
+// 2. map[string]any
+func (p *HTMLParser) parseDom(key string, cfg any, selection *goquery.Selection, data map[string]any, layer int) {
 	p.appendNestedKeys(key)
 	defer p.popNestedKeys()
 
@@ -71,7 +71,7 @@ func (p *HTMLParser) parseDom(key string, cfg interface{}, selection *goquery.Se
 	}
 
 	if funk.IsEmpty(cfg) {
-		data[key] = p.getSelectionAttr(key, map[string]interface{}{key: ""}, selection)
+		data[key] = p.getSelectionAttr(key, map[string]any{key: ""}, selection)
 		return
 	}
 
@@ -79,14 +79,14 @@ func (p *HTMLParser) parseDom(key string, cfg interface{}, selection *goquery.Se
 	case string:
 		// the recursive end condition
 		p.handleStr(key, v, selection, data)
-	case map[string]interface{}:
+	case map[string]any:
 		p.handleMap(key, v, selection, data, layer)
 	default:
-		panic(xpretty.Redf("unknown type of (%v:%v), only support (1:string or 2:map[string]interface{})", key, cfg))
+		panic(xpretty.Redf("unknown type of (%v:%v), only support (1:string or 2:map[string]any)", key, cfg))
 	}
 }
 
-func (p *HTMLParser) handleStr(key string, sel string, selection *goquery.Selection, data map[string]interface{}) {
+func (p *HTMLParser) handleStr(key string, sel string, selection *goquery.Selection, data map[string]any) {
 	data[key] = selection.Find(sel).First().Text()
 }
 
@@ -96,9 +96,9 @@ func (p *HTMLParser) handleStr(key string, sel string, selection *goquery.Select
 //     1.2. found more than 1 node
 func (p *HTMLParser) handleMap(
 	key string,
-	cfg map[string]interface{},
+	cfg map[string]any,
 	selection *goquery.Selection,
-	data map[string]interface{},
+	data map[string]any,
 	layer int,
 ) {
 	if p.isLeaf(cfg) {
@@ -110,11 +110,11 @@ func (p *HTMLParser) handleMap(
 
 	switch dom := elems.(type) {
 	case *goquery.Selection:
-		subData := make(map[string]interface{})
+		subData := make(map[string]any)
 		data[key] = subData
 		p.parseDomNodes(cfg, dom, subData)
 	case []*goquery.Selection:
-		var allSubData []map[string]interface{}
+		var allSubData []map[string]any
 
 		for _, selection := range dom {
 			if layer == _layerForRank {
@@ -126,7 +126,7 @@ func (p *HTMLParser) handleMap(
 				p.setRank(cfg)
 			}
 
-			subData := make(map[string]interface{})
+			subData := make(map[string]any)
 			allSubData = append(allSubData, subData)
 
 			p.parseDomNodes(cfg, selection, subData)
@@ -137,9 +137,9 @@ func (p *HTMLParser) handleMap(
 }
 
 func (p *HTMLParser) parseDomNodes(
-	cfg map[string]interface{},
+	cfg map[string]any,
 	selection *goquery.Selection,
-	data map[string]interface{},
+	data map[string]any,
 ) {
 	for k, sc := range cfg {
 		if strings.HasPrefix(k, "_") {
@@ -151,9 +151,9 @@ func (p *HTMLParser) parseDomNodes(
 }
 
 func (p *HTMLParser) getAllElems(key string,
-	cfg map[string]interface{},
+	cfg map[string]any,
 	selection *goquery.Selection,
-) (iface interface{}, isComplexSel bool) {
+) (iface any, isComplexSel bool) {
 	selCfg := mustCfgLocator(cfg)
 	if selCfg == nil {
 		return selection, false
@@ -172,7 +172,7 @@ func (p *HTMLParser) getAllElems(key string,
 			// so selCfg is `div.title,h2.title,h3.title`
 			iface = p.getElemsOneByOne(key, strings.Split(selCfg, ","), cfg, selection)
 		}
-	case []interface{}:
+	case []any:
 		var selArr []string
 		// cfg likes
 		// _locator:
@@ -189,7 +189,7 @@ func (p *HTMLParser) getAllElems(key string,
 		}
 
 		iface = p.getElemsOneByOne(key, selArr, cfg, selection)
-	case map[string]interface{}:
+	case map[string]any:
 		// cfg likes
 		// _locator:
 		//   divTitle: div.title
@@ -213,7 +213,7 @@ func (p *HTMLParser) getAllElems(key string,
 	return iface, isComplexSel
 }
 
-func (p *HTMLParser) handleStub(raw interface{}, result *goquery.Selection) (interface{}, *goquery.Selection) {
+func (p *HTMLParser) handleStub(raw any, result *goquery.Selection) (any, *goquery.Selection) {
 	key, ok := raw.(string)
 	if !ok {
 		panic(fmt.Sprintf("locator require string, but got (%T: %v)", raw, raw))
@@ -230,7 +230,7 @@ func (p *HTMLParser) handleStub(raw interface{}, result *goquery.Selection) (int
 }
 
 func (p *HTMLParser) getElemsOneByOne(key string, selArr []string,
-	cfg map[string]interface{}, selection *goquery.Selection,
+	cfg map[string]any, selection *goquery.Selection,
 ) []*goquery.Selection {
 	var resArr []*goquery.Selection
 
@@ -252,9 +252,9 @@ func (p *HTMLParser) getElemsOneByOne(key string, selArr []string,
 	return resArr
 }
 
-func (p *HTMLParser) getOneSelector(key string, sel interface{},
-	cfg map[string]interface{}, selection *goquery.Selection,
-) (interface{}, bool) {
+func (p *HTMLParser) getOneSelector(key string, sel any,
+	cfg map[string]any, selection *goquery.Selection,
+) (any, bool) {
 	selStr, _ := sel.(string)
 	elems := selection.Find(selStr)
 	index := mustCfgIndex(cfg)
@@ -310,7 +310,7 @@ func (p *HTMLParser) getOneSelector(key string, sel interface{},
 		}
 
 		iface = d
-	case []interface{}:
+	case []any:
 		var selArr []*goquery.Selection
 
 		for _, v := range val {
@@ -324,13 +324,13 @@ func (p *HTMLParser) getOneSelector(key string, sel interface{},
 
 		iface = selArr
 	default:
-		panic(xpretty.Redf("index should be int/int64/uint64 or []interface{}, but (%s is %T: %v)", key, val, val))
+		panic(xpretty.Redf("index should be int/int64/uint64 or []any, but (%s is %T: %v)", key, val, val))
 	}
 
 	return iface, isComplexSel
 }
 
-func (p *HTMLParser) handleNullIndexOnly(key string, isComplexSel bool, cfg map[string]interface{}, elems *goquery.Selection) interface{} {
+func (p *HTMLParser) handleNullIndexOnly(key string, isComplexSel bool, cfg map[string]any, elems *goquery.Selection) any {
 	// index has 4 types:
 	//  1. without index equal with type:3(index:0)
 	//  2. index: ~ (index is null)
@@ -363,7 +363,7 @@ func (p *HTMLParser) handleNullIndexOnly(key string, isComplexSel bool, cfg map[
 	return p.getAllSelections(elems)
 }
 
-func (p *HTMLParser) extractParent(key string, sel interface{}, elems *goquery.Selection) interface{} {
+func (p *HTMLParser) extractParent(key string, sel any, elems *goquery.Selection) any {
 	switch preSel := sel.(type) {
 	case bool:
 		return elems.Parent()
@@ -379,7 +379,7 @@ func (p *HTMLParser) extractParent(key string, sel interface{}, elems *goquery.S
 	panic(xpretty.Redf("action _extract_parent only support bool and int, but (%s's %v is %T: %v)", key, ExtractParent, sel, sel))
 }
 
-func (p *HTMLParser) extractPrevNode(key string, sel interface{}, elems *goquery.Selection) interface{} {
+func (p *HTMLParser) extractPrevNode(key string, sel any, elems *goquery.Selection) any {
 	switch preSel := sel.(type) {
 	case bool:
 		return elems.Prev()
@@ -405,9 +405,9 @@ func (p *HTMLParser) getAllSelections(elems *goquery.Selection) []*goquery.Selec
 
 func (p *HTMLParser) getNodesAttrs(
 	key string,
-	cfg map[string]interface{},
+	cfg map[string]any,
 	selection *goquery.Selection,
-	data map[string]interface{},
+	data map[string]any,
 ) {
 	// first of all, check if _raw is set or not.
 	if val := mustCfgRaw(cfg); val != nil && val != "" {
@@ -426,7 +426,7 @@ func (p *HTMLParser) getNodesAttrs(
 
 	case []*goquery.Selection:
 		if !complexSel {
-			var subData []interface{}
+			var subData []any
 
 			for _, dm := range dom {
 				d := p.getSelectionAttr(key, cfg, dm)
@@ -440,13 +440,13 @@ func (p *HTMLParser) getNodesAttrs(
 
 			switch ifc := cpxIface.(type) {
 			case []string:
-				var sd []interface{}
+				var sd []any
 				for _, k := range ifc {
 					sd = append(sd, k)
 				}
 
 				data[key] = p.postJoin(cfg, sd)
-			case []interface{}:
+			case []any:
 				d := p.postJoin(cfg, ifc)
 				data[key] = d
 			default:
@@ -455,7 +455,7 @@ func (p *HTMLParser) getNodesAttrs(
 		}
 	case map[string]*goquery.Selection:
 		if !complexSel {
-			subData := make(map[string]interface{})
+			subData := make(map[string]any)
 
 			for k, dm := range dom {
 				d := p.getSelectionAttr(key, cfg, dm)
@@ -471,7 +471,7 @@ func (p *HTMLParser) getNodesAttrs(
 	}
 }
 
-func (p *HTMLParser) postJoin(cfg map[string]interface{}, data []interface{}) interface{} {
+func (p *HTMLParser) postJoin(cfg map[string]any, data []any) any {
 	postJoin, b := cfg[PostJoin]
 	if !b {
 		return data
@@ -493,7 +493,7 @@ func (p *HTMLParser) postJoin(cfg map[string]interface{}, data []interface{}) in
 	return strings.Join(arr, joiner)
 }
 
-func (p *HTMLParser) getSelectionSliceAttr(key string, cfg map[string]interface{}, resultArr []*goquery.Selection) interface{} {
+func (p *HTMLParser) getSelectionSliceAttr(key string, cfg map[string]any, resultArr []*goquery.Selection) any {
 	var resArr []string
 
 	for _, v := range resultArr {
@@ -509,7 +509,7 @@ func (p *HTMLParser) getSelectionSliceAttr(key string, cfg map[string]interface{
 	return p.convertToType(v, cfg)
 }
 
-func (p *HTMLParser) getSelectionMapAttr(key string, cfg map[string]interface{}, results map[string]*goquery.Selection) interface{} {
+func (p *HTMLParser) getSelectionMapAttr(key string, cfg map[string]any, results map[string]*goquery.Selection) any {
 	dat := make(map[string]string)
 
 	for k, v := range results {
@@ -524,7 +524,7 @@ func (p *HTMLParser) getSelectionMapAttr(key string, cfg map[string]interface{},
 	return p.convertToType(v, cfg)
 }
 
-func (p *HTMLParser) getSelectionAttr(key string, cfg map[string]interface{}, selection *goquery.Selection) interface{} {
+func (p *HTMLParser) getSelectionAttr(key string, cfg map[string]any, selection *goquery.Selection) any {
 	raw := p.getRawAttr(cfg, selection)
 	raw = p.stripChars(key, raw, cfg)
 	raw = p.refineAttr(key, raw, cfg, selection)
@@ -533,7 +533,7 @@ func (p *HTMLParser) getSelectionAttr(key string, cfg map[string]interface{}, se
 	return p.convertToType(raw, cfg)
 }
 
-func (p *HTMLParser) getRawAttr(cfg map[string]interface{}, selection *goquery.Selection) interface{} {
+func (p *HTMLParser) getRawAttr(cfg map[string]any, selection *goquery.Selection) any {
 	attr := cfg[Attr]
 
 	if attr == nil {
@@ -571,8 +571,8 @@ func (p *HTMLParser) getRawAttr(cfg map[string]interface{}, selection *goquery.S
 	case string:
 		v := selection.AttrOr(attrType, "")
 		return p.TrimSpace(v, cfg)
-	case []interface{}:
-		cplxAttr := make(map[string]interface{})
+	case []any:
+		cplxAttr := make(map[string]any)
 
 		for _, at := range attrType {
 			atStr, _ := at.(string)
@@ -582,6 +582,6 @@ func (p *HTMLParser) getRawAttr(cfg map[string]interface{}, selection *goquery.S
 
 		return cplxAttr
 	default:
-		panic(xpretty.Redf("attr should be (string or []interface{}), but (%s is %T: %v)", attr, attrType, attrType))
+		panic(xpretty.Redf("attr should be (string or []any), but (%s is %T: %v)", attr, attrType, attrType))
 	}
 }

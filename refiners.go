@@ -42,7 +42,7 @@ func WithRefPromptConfig(cfg *PromptConfig) RefOptFunc {
 }
 
 // UpdateRefiners binds all refiners to parser
-func UpdateRefiners(parser interface{}, opts ...RefOptFunc) {
+func UpdateRefiners(parser any, opts ...RefOptFunc) {
 	opt := RefOpts{hintType: 1}
 	bindRefOpts(&opt, opts...)
 
@@ -54,11 +54,11 @@ func UpdateRefiners(parser interface{}, opts ...RefOptFunc) {
 	bindRefiners(parser, attrs, opts...)
 }
 
-func bindRefiners(parser interface{}, attrs []string, opts ...RefOptFunc) {
+func bindRefiners(parser any, attrs []string, opts ...RefOptFunc) {
 	opt := RefOpts{hintType: 1}
 	bindRefOpts(&opt, opts...)
 
-	refiners, _ := GetField(parser, "Refiners").Interface().(map[string]func(raw ...interface{}) interface{})
+	refiners, _ := GetField(parser, "Refiners").Interface().(map[string]func(raw ...any) any)
 
 	missing := []string{}
 
@@ -73,7 +73,7 @@ func bindRefiners(parser interface{}, attrs []string, opts ...RefOptFunc) {
 			continue
 		}
 
-		refiners[mtdName], _ = method.Interface().(func(raw ...interface{}) interface{})
+		refiners[mtdName], _ = method.Interface().(func(raw ...any) any)
 	}
 
 	promptMissingRefiners(parser, missing, opt)

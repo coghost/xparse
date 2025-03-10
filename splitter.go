@@ -20,7 +20,7 @@ type Splitter struct {
 
 // NewSplitter creates a StringSplitter with a single rule, similar to SplitAtIndex usage
 // Returns *StringSplitter for immediate Split() call
-func NewSplitter(raw interface{}, sep string, index int) *Splitter {
+func NewSplitter(raw any, sep string, index int) *Splitter {
 	return NewStringSplitter(raw).By(sep, index)
 }
 
@@ -35,7 +35,7 @@ func NewSplitter(raw interface{}, sep string, index int) *Splitter {
 //	    WithRule("=", 1).     // gets "world&foo=bar"
 //	    WithRule("&", 0).     // gets "world"
 //	    Split()
-func NewStringSplitter(raw interface{}) *Splitter {
+func NewStringSplitter(raw any) *Splitter {
 	if raw == nil {
 		return &Splitter{trimTrailing: true} // default to true
 	}
@@ -77,7 +77,7 @@ func (s *Splitter) KeepLastFound(enabled bool) *Splitter {
 
 // Split applies all rules in sequence and returns the final result.
 //   - Returns empty string if input is empty or any split operation fails
-//   - Returns interface{} to maintain compatibility with existing code
+//   - Returns any to maintain compatibility with existing code
 func (s *Splitter) String() string {
 	if s.source == "" {
 		return ""
@@ -151,7 +151,7 @@ func NewSplitRule(delimiter string, index int) SplitRule {
 }
 
 // Deprecated: Use StringSplitter.SplitAtIndex instead
-func SplitAtIndex(raw interface{}, sep string, index int) string {
+func SplitAtIndex(raw any, sep string, index int) string {
 	// Handle nil input
 	if raw == nil {
 		return ""

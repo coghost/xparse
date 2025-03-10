@@ -85,8 +85,8 @@ jobs:
 	p := NewJSONParser(s.rawJSON, []byte(rawYaml))
 	p.DoParse()
 
-	want := map[string]interface{}{
-		"jobs": []map[string]interface{}{
+	want := map[string]any{
+		"jobs": []map[string]any{
 			{
 				"rank":  0,
 				"title": "Front-End Engineer – 2023 (US)",
@@ -168,8 +168,8 @@ jobs:
 	p := NewJSONParser(s.rawJSON, []byte(rawYaml))
 	p.DoParse()
 
-	want := map[string]interface{}{
-		"jobs": []map[string]interface{}{
+	want := map[string]any{
+		"jobs": []map[string]any{
 			{
 				"rank":  0,
 				"title": "Front-End Engineer – 2023 (US)",
@@ -189,11 +189,11 @@ func (s *JSONParserSuite) Test_05_type() {
 	p := NewJSONParser(s.rawJSON, rawYaml)
 	p.DoParse()
 
-	want := map[string]interface{}{
-		"jobs": []map[string]interface{}{
+	want := map[string]any{
+		"jobs": []map[string]any{
 			{
 				"rank": 0,
-				"reviews": map[string]interface{}{
+				"reviews": map[string]any{
 					"count":   88390,
 					"count_f": 88390.000000,
 					"link":    "/cmp/Amazon.com/reviews",
@@ -203,7 +203,7 @@ func (s *JSONParserSuite) Test_05_type() {
 			},
 			{
 				"rank": 1,
-				"reviews": map[string]interface{}{
+				"reviews": map[string]any{
 					"count":   0,
 					"count_f": 0.000000,
 					"link":    "",
@@ -216,7 +216,7 @@ func (s *JSONParserSuite) Test_05_type() {
 	s.Equal(want, p.ParsedData)
 }
 
-func refineMax(raw ...interface{}) interface{} {
+func refineMax(raw ...any) any {
 	v := cast.ToString(raw[0])
 	if v == "" {
 		return v
@@ -224,7 +224,7 @@ func refineMax(raw ...interface{}) interface{} {
 	return "max: $" + v
 }
 
-func refineSalaryMin(raw ...interface{}) interface{} {
+func refineSalaryMin(raw ...any) any {
 	v := cast.ToString(raw[0])
 	if v == "" {
 		return v
@@ -239,11 +239,11 @@ func (s *JSONParserSuite) Test_0601_attrRefineManually() {
 	p.Refiners["RefineSalaryMin"] = refineSalaryMin
 	p.DoParse()
 
-	want := map[string]interface{}{
-		"jobs": []map[string]interface{}{
+	want := map[string]any{
+		"jobs": []map[string]any{
 			{
 				"rank": 0,
-				"salary": map[string]interface{}{
+				"salary": map[string]any{
 					"max": "",
 					"min": "",
 				},
@@ -251,7 +251,7 @@ func (s *JSONParserSuite) Test_0601_attrRefineManually() {
 			},
 			{
 				"rank": 1,
-				"salary": map[string]interface{}{
+				"salary": map[string]any{
 					"max": "max: $94426.57",
 					"min": "min: $74573.43",
 				},
@@ -273,12 +273,12 @@ func newParser2(rawData, ymlMap []byte) *Parser2 {
 	}
 }
 
-func (p *Parser2) RefineMax(raw ...interface{}) interface{} {
+func (p *Parser2) RefineMax(raw ...any) any {
 	v := cast.ToString(raw[0])
 	return v
 }
 
-func (p *Parser2) RefineSalaryMin(raw ...interface{}) interface{} {
+func (p *Parser2) RefineSalaryMin(raw ...any) any {
 	v := cast.ToString(raw[0])
 	return v
 }
@@ -289,11 +289,11 @@ func (s *JSONParserSuite) Test_0602_attrRefineAutoFind() {
 	UpdateRefiners(p)
 	p.DoParse()
 
-	want := map[string]interface{}{
-		"jobs": []map[string]interface{}{
+	want := map[string]any{
+		"jobs": []map[string]any{
 			{
 				"rank": 0,
-				"salary": map[string]interface{}{
+				"salary": map[string]any{
 					"max": "",
 					"min": "",
 				},
@@ -301,7 +301,7 @@ func (s *JSONParserSuite) Test_0602_attrRefineAutoFind() {
 			},
 			{
 				"rank": 1,
-				"salary": map[string]interface{}{
+				"salary": map[string]any{
 					"max": "94426.57",
 					"min": "74573.43",
 				},
@@ -317,8 +317,8 @@ func (s *JSONParserSuite) Test_0701_locator_gjson_multipaths() {
 	p := NewJSONParser(s.rawJSON, rawYaml)
 	p.DoParse()
 
-	want := map[string]interface{}{
-		"jobs": []map[string]interface{}{
+	want := map[string]any{
+		"jobs": []map[string]any{
 			{
 				"rank":    0,
 				"salary":  "{\"extractedSalary\":{ \"max\": 120000, \"min\": 120000, \"type\": \"yearly\" }}",
@@ -342,8 +342,8 @@ func (s *JSONParserSuite) Test_0702_locator_list() {
 	p := NewJSONParser(s.rawJSON, rawYaml)
 	p.DoParse()
 
-	want := map[string]interface{}{
-		"jobs": []map[string]interface{}{
+	want := map[string]any{
+		"jobs": []map[string]any{
 			{
 				"rank":    0,
 				"salary":  "|||{ \"max\": 120000, \"min\": 120000, \"type\": \"yearly\" }",
@@ -367,8 +367,8 @@ func (s *JSONParserSuite) Test_0703_locator_map() {
 	p := NewJSONParser(s.rawJSON, rawYaml)
 	p.DoParse()
 
-	want := map[string]interface{}{
-		"jobs": []map[string]interface{}{
+	want := map[string]any{
+		"jobs": []map[string]any{
 			{
 				"rank":    0,
 				"salary":  "{\"esti\":\"\",\"extract\":\"{ \\\"max\\\": 120000, \\\"min\\\": 120000, \\\"type\\\": \\\"yearly\\\" }\"}",
@@ -388,7 +388,7 @@ func (s *JSONParserSuite) Test_0703_locator_map() {
 	s.Equal(want, p.ParsedData)
 }
 
-func RefineAttr(raw ...interface{}) interface{} {
+func RefineAttr(raw ...any) any {
 	v := cast.ToString(raw[0])
 	return v
 }
@@ -400,18 +400,18 @@ func (s *JSONParserSuite) Test_0704_locator_list2() {
 	p.Refiners["RefineAttr"] = RefineAttr
 	p.DoParse()
 
-	want := map[string]interface{}{
-		"jobs": []map[string]interface{}{
+	want := map[string]any{
+		"jobs": []map[string]any{
 			{
 				"rank": 0,
-				"taxo": map[string]interface{}{
+				"taxo": map[string]any{
 					"attr": "Full-time|||{ \"salaryTextFormatted\": false, \"source\": \"EXTRACTION\", \"text\": \"$120,000 a year\" }",
 				},
 				"title": "Front-End Engineer – 2023 (US)",
 			},
 			{
 				"rank": 1,
-				"taxo": map[string]interface{}{
+				"taxo": map[string]any{
 					"attr": "Full-time|||{ \"salaryTextFormatted\": false }",
 				},
 				"title": "Python Developer",
@@ -431,15 +431,15 @@ func newParser3(rawData, ymlMap []byte) *Parser3 {
 	}
 }
 
-func (p *Parser3) RefineTaxoAttrArr(raw ...interface{}) interface{} {
+func (p *Parser3) RefineTaxoAttrArr(raw ...any) any {
 	v := cast.ToString(raw[0])
 	arr := strings.Split(v, AttrJoinerSep)
 	return arr
 }
 
-func (p *Parser3) RefineTaxoAttrMap(raw ...interface{}) interface{} {
+func (p *Parser3) RefineTaxoAttrMap(raw ...any) any {
 	v := cast.ToString(raw[0])
-	d := make(map[string]interface{})
+	d := make(map[string]any)
 	err := json.Unmarshal([]byte(v), &d)
 	if err != nil {
 		panic(err)
@@ -454,18 +454,18 @@ func (s *JSONParserSuite) Test_0801_refineComplexSel() {
 	UpdateRefiners(p)
 	p.DoParse()
 
-	want := map[string]interface{}{
-		"jobs": []map[string]interface{}{
+	want := map[string]any{
+		"jobs": []map[string]any{
 			{
 				"rank": 0,
-				"taxo": map[string]interface{}{
+				"taxo": map[string]any{
 					"attr_arr": []string{
 						"Full-time",
 						"$120,000 a year",
 					},
 				},
-				"tier": map[string]interface{}{
-					"attr_map": map[string]interface{}{
+				"tier": map[string]any{
+					"attr_map": map[string]any{
 						"label": "/career/front-end-developer/salaries/Seattle--WA",
 						"snip":  "$120,000 a year",
 					},
@@ -474,14 +474,14 @@ func (s *JSONParserSuite) Test_0801_refineComplexSel() {
 			},
 			{
 				"rank": 1,
-				"taxo": map[string]interface{}{
+				"taxo": map[string]any{
 					"attr_arr": []string{
 						"Part-time",
 						"$40 an hour",
 					},
 				},
-				"tier": map[string]interface{}{
-					"attr_map": map[string]interface{}{
+				"tier": map[string]any{
+					"attr_map": map[string]any{
 						"label": "/career/instructor/salaries",
 						"snip":  "$40 an hour",
 					},

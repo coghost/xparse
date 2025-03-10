@@ -6,28 +6,28 @@ type IDev interface {
 }
 
 type IConfig interface {
-	RawInfo(args ...string) map[string]interface{}
+	RawInfo(args ...string) map[string]any
 }
 
 type IData interface {
-	BindPresetData(dat map[string]interface{})
-	AppendPresetData(data map[string]interface{})
+	BindPresetData(dat map[string]any)
+	AppendPresetData(data map[string]any)
 
 	LoadRootSelection([]byte)
 
-	GetParsedData(keys ...string) interface{}
-	DataAsJSON(args ...interface{}) (string, error)
-	MustDataAsJSON(args ...interface{}) string
-	PrettifyJSONData(args ...interface{}) error
+	GetParsedData(keys ...string) any
+	DataAsJSON(args ...any) (string, error)
+	MustDataAsJSON(args ...any) string
+	PrettifyJSONData(args ...any) error
 
-	DataAsYaml(args ...interface{}) (string, error)
-	MustDataAsYaml(args ...interface{}) string
+	DataAsYaml(args ...any) (string, error)
+	MustDataAsYaml(args ...any) string
 
 	MustMandatoryFields(got, want []string)
 
 	PostDoParse()
 
-	ExtraInfo() map[string]interface{}
+	ExtraInfo() map[string]any
 }
 
 type IParser interface {
@@ -38,7 +38,7 @@ type IParser interface {
 	DoParse()
 }
 
-func DoParse(parser IParser, opts ...ParseOptFunc) interface{} {
+func DoParse(parser IParser, opts ...ParseOptFunc) any {
 	opt := &ParseOpts{
 		promptCfg: NewPromptConfig(),
 	}
@@ -55,7 +55,7 @@ func DoParse(parser IParser, opts ...ParseOptFunc) interface{} {
 
 type ParseOpts struct {
 	dataAsSlice bool
-	preset      map[string]interface{}
+	preset      map[string]any
 	rootKey     string
 	promptCfg   *PromptConfig
 }
@@ -75,7 +75,7 @@ func WithDataAsSlice(b bool) ParseOptFunc {
 }
 
 // WithPresetData: used to bind page level data
-func WithPresetData(preset map[string]interface{}) ParseOptFunc {
+func WithPresetData(preset map[string]any) ParseOptFunc {
 	return func(o *ParseOpts) {
 		o.preset = preset
 	}

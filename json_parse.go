@@ -40,7 +40,7 @@ func (p *JSONParser) DoParse() {
 
 	for key, cfg := range p.config.Data() {
 		switch cfgType := cfg.(type) {
-		case map[string]interface{}:
+		case map[string]any:
 			p.rankOffset = 0
 			result, _ := p.Root.(gjson.Result)
 			p.parseDom(key, cfgType, result, p.ParsedData, _layerForRank)
@@ -54,7 +54,7 @@ func (p *JSONParser) DoParse() {
 	p.RefineJobsWithPreset()
 }
 
-func (p *JSONParser) parseDom(key string, cfg interface{}, result gjson.Result, data map[string]interface{}, layer int) {
+func (p *JSONParser) parseDom(key string, cfg any, result gjson.Result, data map[string]any, layer int) {
 	p.appendNestedKeys(key)
 	defer p.popNestedKeys()
 
@@ -65,7 +65,7 @@ func (p *JSONParser) parseDom(key string, cfg interface{}, result gjson.Result, 
 	}
 
 	if funk.IsEmpty(cfg) {
-		data[key] = p.getSelectionAttr(key, map[string]interface{}{key: ""}, result)
+		data[key] = p.getSelectionAttr(key, map[string]any{key: ""}, result)
 		return
 	}
 
@@ -73,15 +73,15 @@ func (p *JSONParser) parseDom(key string, cfg interface{}, result gjson.Result, 
 	case string:
 		// the recursive end condition
 		p.handleStr(key, v, result, data)
-	case map[string]interface{}:
+	case map[string]any:
 		p.handleMap(key, v, result, data, layer)
 	default:
-		panic(xpretty.Redf("unknown type of (%v:%v), only support (1:string or 2:map[string]interface{})", key, cfg))
+		panic(xpretty.Redf("unknown type of (%v:%v), only support (1:string or 2:map[string]any)", key, cfg))
 	}
 }
 
-func (p *JSONParser) getSelectionAttr(key string, cfg map[string]interface{}, result gjson.Result) interface{} {
-	var raw interface{}
+func (p *JSONParser) getSelectionAttr(key string, cfg map[string]any, result gjson.Result) any {
+	var raw any
 	raw = result.String()
 	raw = p.stripChars(key, raw, cfg)
 	raw = p.refineAttr(key, raw, cfg, result)
@@ -90,7 +90,7 @@ func (p *JSONParser) getSelectionAttr(key string, cfg map[string]interface{}, re
 	return p.convertToType(raw, cfg)
 }
 
-func (p *JSONParser) getSelectionSliceAttr(key string, cfg map[string]interface{}, resultArr []gjson.Result) interface{} {
+func (p *JSONParser) getSelectionSliceAttr(key string, cfg map[string]any, resultArr []gjson.Result) any {
 	var raw []string
 	for _, v := range resultArr {
 		raw = append(raw, v.String())
@@ -103,7 +103,7 @@ func (p *JSONParser) getSelectionSliceAttr(key string, cfg map[string]interface{
 	return p.convertToType(v, cfg)
 }
 
-func (p *JSONParser) getSelectionMapAttr(key string, cfg map[string]interface{}, results map[string]gjson.Result) interface{} {
+func (p *JSONParser) getSelectionMapAttr(key string, cfg map[string]any, results map[string]gjson.Result) any {
 	dat := make(map[string]string)
 	for k, v := range results {
 		dat[k] = v.String()
@@ -116,15 +116,15 @@ func (p *JSONParser) getSelectionMapAttr(key string, cfg map[string]interface{},
 	return p.convertToType(v, cfg)
 }
 
-func (p *JSONParser) handleStr(key string, sel string, result gjson.Result, data map[string]interface{}) {
+func (p *JSONParser) handleStr(key string, sel string, result gjson.Result, data map[string]any) {
 	data[key] = result.Get(sel).String()
 }
 
 func (p *JSONParser) handleMap(
 	key string,
-	cfg map[string]interface{},
+	cfg map[string]any,
 	result gjson.Result,
-	data map[string]interface{},
+	data map[string]any,
 	layer int,
 ) {
 	if p.isLeaf(cfg) {
@@ -135,7 +135,7 @@ func (p *JSONParser) handleMap(
 	elems, _ := p.getAllElems(key, cfg, result)
 	switch dom := elems.(type) {
 	case gjson.Result:
-		subData := make(map[string]interface{})
+		subData := make(map[string]any)
 		data[key] = subData
 		p.parseDomNodes(cfg, dom, subData)
 
@@ -144,7 +144,7 @@ func (p *JSONParser) handleMap(
 		}
 
 	case []gjson.Result:
-		var allSubData []map[string]interface{}
+		var allSubData []map[string]any
 
 		for _, result := range dom {
 			if layer == _layerForRank {
@@ -156,7 +156,7 @@ func (p *JSONParser) handleMap(
 				p.setRank(cfg)
 			}
 
-			subData := make(map[string]interface{})
+			subData := make(map[string]any)
 			allSubData = append(allSubData, subData)
 
 			p.parseDomNodes(cfg, result, subData)
@@ -166,7 +166,7 @@ func (p *JSONParser) handleMap(
 	}
 }
 
-func (p *JSONParser) getResultAtIndex(_ interface{}, result gjson.Result, index int) (rs gjson.Result) {
+func (p *JSONParser) getResultAtIndex(_ any, result gjson.Result, index int) (rs gjson.Result) {
 	arr := result.Array()
 	if len(arr) > index {
 		return arr[index]
@@ -175,7 +175,7 @@ func (p *JSONParser) getResultAtIndex(_ interface{}, result gjson.Result, index 
 	return
 }
 
-func (p *JSONParser) getAllElems(key string, cfg map[string]interface{}, result gjson.Result) (iface interface{}, isComplexSel bool) {
+func (p *JSONParser) getAllElems(key string, cfg map[string]any, result gjson.Result) (iface any, isComplexSel bool) {
 	sel := mustCfgLocator(cfg)
 	if sel == nil {
 		return result, false
@@ -190,7 +190,7 @@ func (p *JSONParser) getAllElems(key string, cfg map[string]interface{}, result 
 		}
 
 		iface = p.getOneSelector(key, sel, cfg, result)
-	case []interface{}:
+	case []any:
 		arr := []gjson.Result{}
 		backup := result
 
@@ -206,7 +206,7 @@ func (p *JSONParser) getAllElems(key string, cfg map[string]interface{}, result 
 
 		iface = arr
 		isComplexSel = true
-	case map[string]interface{}:
+	case map[string]any:
 		dat := make(map[string]gjson.Result)
 		backup := result
 
@@ -230,7 +230,7 @@ func (p *JSONParser) getAllElems(key string, cfg map[string]interface{}, result 
 	return iface, isComplexSel
 }
 
-func (p *JSONParser) handleStub(raw interface{}, result gjson.Result) (interface{}, gjson.Result) {
+func (p *JSONParser) handleStub(raw any, result gjson.Result) (any, gjson.Result) {
 	rawStr, _ := raw.(string)
 	arr := strings.Split(rawStr, ".")
 
@@ -242,7 +242,7 @@ func (p *JSONParser) handleStub(raw interface{}, result gjson.Result) (interface
 	return raw, result
 }
 
-func (p *JSONParser) getOneSelector(key string, sel interface{}, cfg map[string]interface{}, result gjson.Result) (iface interface{}) { //nolint
+func (p *JSONParser) getOneSelector(key string, sel any, cfg map[string]any, result gjson.Result) (iface any) { //nolint
 	index, existed := cfgIndex(cfg)
 	if index == nil {
 		if !existed {
@@ -297,7 +297,7 @@ func (p *JSONParser) getOneSelector(key string, sel interface{}, cfg map[string]
 		}
 
 		return d
-	case []interface{}:
+	case []any:
 		var resArr []gjson.Result
 
 		for _, v := range val {
@@ -312,14 +312,14 @@ func (p *JSONParser) getOneSelector(key string, sel interface{}, cfg map[string]
 
 		return resArr
 	default:
-		panic(xpretty.Redf("index should be int or []interface{}, but (%s is %T: %v)", key, val, val))
+		panic(xpretty.Redf("index should be int or []any, but (%s is %T: %v)", key, val, val))
 	}
 }
 
 func (p *JSONParser) parseDomNodes(
-	cfg map[string]interface{},
+	cfg map[string]any,
 	result gjson.Result,
-	data map[string]interface{},
+	data map[string]any,
 ) {
 	for k, sc := range cfg {
 		if strings.HasPrefix(k, "_") {
@@ -332,9 +332,9 @@ func (p *JSONParser) parseDomNodes(
 
 func (p *JSONParser) getNodesAttrs(
 	key string,
-	cfg map[string]interface{},
+	cfg map[string]any,
 	selection gjson.Result,
-	data map[string]interface{},
+	data map[string]any,
 ) {
 	// first of all, check if _raw is set or not.
 	if val := mustCfgRaw(cfg); val != nil && val != "" {
@@ -350,7 +350,7 @@ func (p *JSONParser) getNodesAttrs(
 
 	case []gjson.Result:
 		if !complexSel {
-			var subData []interface{}
+			var subData []any
 
 			for _, dm := range dom {
 				d := p.getSelectionAttr(key, cfg, dm)
@@ -363,13 +363,13 @@ func (p *JSONParser) getNodesAttrs(
 
 			switch ifc := cpxIface.(type) {
 			case []string:
-				var sd []interface{}
+				var sd []any
 				for _, k := range ifc {
 					sd = append(sd, k)
 				}
 
 				data[key] = p.postJoin(cfg, sd)
-			case []interface{}:
+			case []any:
 				d := p.postJoin(cfg, ifc)
 				data[key] = d
 			default:
@@ -378,7 +378,7 @@ func (p *JSONParser) getNodesAttrs(
 		}
 	case map[string]gjson.Result:
 		if !complexSel {
-			subData := make(map[string]interface{})
+			subData := make(map[string]any)
 
 			for k, dm := range dom {
 				d := p.getSelectionAttr(key, cfg, dm)
@@ -394,7 +394,7 @@ func (p *JSONParser) getNodesAttrs(
 	}
 }
 
-func (p *JSONParser) postJoin(cfg map[string]interface{}, data []interface{}) interface{} {
+func (p *JSONParser) postJoin(cfg map[string]any, data []any) any {
 	postJoin, b := cfg[PostJoin]
 	if !b {
 		return data

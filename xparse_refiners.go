@@ -222,12 +222,19 @@ func (p *Parser) RefineEncodedJson(raw ...any) any { //nolint
 }
 
 func (p *Parser) RefineJobsWithPreset() {
-	p.refineJobs()
+	if len(p.rootKeysToBeRefined) == 0 {
+		p.rootKeysToBeRefined = append(p.rootKeysToBeRefined, "jobs")
+	}
+
+	for _, key := range p.rootKeysToBeRefined {
+		p.refineJobs(key)
+	}
+
 	p.refineJob()
 }
 
-func (p *Parser) refineJobs() {
-	jobs, ok := p.GetParsedData("jobs").([]map[string]any)
+func (p *Parser) refineJobs(rootKey string) {
+	jobs, ok := p.GetParsedData(rootKey).([]map[string]any)
 	if !ok {
 		return
 	}

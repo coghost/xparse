@@ -7,6 +7,7 @@ import (
 	"os"
 	"reflect"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/coghost/xdtm"
@@ -98,6 +99,9 @@ type Parser struct {
 	Refiners map[string]func(raw ...any) any
 
 	AttrToBeRefined []string
+
+	// rootKeysToBeRefined root keys
+	rootKeysToBeRefined []string
 }
 
 func NewParser(raw []byte, ymlMap ...[]byte) *Parser {
@@ -110,6 +114,20 @@ func NewParser(raw []byte, ymlMap ...[]byte) *Parser {
 
 		rankAsIndex: false,
 	}
+}
+
+func (p *Parser) AppendRootKeysToBeRefined(keys []string) {
+	for _, key := range keys {
+		if slices.Contains(p.rootKeysToBeRefined, key) {
+			continue
+		}
+
+		p.rootKeysToBeRefined = append(p.rootKeysToBeRefined, key)
+	}
+}
+
+func (p *Parser) SetRootKeysToBeRefined(keys []string) {
+	p.rootKeysToBeRefined = keys
 }
 
 func (p *Parser) ToggleDevMode(b bool) {

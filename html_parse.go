@@ -430,7 +430,16 @@ func (p *HTMLParser) getNodesAttrs(
 
 			for _, dm := range dom {
 				d := p.getSelectionAttr(key, cfg, dm)
-				subData = append(subData, d)
+				omitRaw, foundKey := cfg[OmitEmpty]
+				if foundKey {
+					omitted := cast.ToBool(omitRaw)
+					// append with two conditions: not omitted, not empty
+					if !omitted || funk.NotEmpty(d) {
+						subData = append(subData, d)
+					}
+				} else {
+					subData = append(subData, d)
+				}
 			}
 
 			d := p.postJoin(cfg, subData)

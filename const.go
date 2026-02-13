@@ -97,6 +97,9 @@ const (
 	// PostJoin joins parsed attributes array into string using joiner
 	PostJoin = "_post_join"
 
+	// Omit Empty value
+	OmitEmpty = "_omit_empty"
+
 	// Strip controls string trimming
 	// Values:
 	//   - if `_strip: true` or not existed: does strings.TrimSpace
